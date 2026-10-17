@@ -5,8 +5,9 @@ Aplicación web sencilla para resolver ejercicios del segundo parcial de Estadí
 JavaScript, sin dependencias ni paso de compilación.
 
 > Estado actual: interfaz para elegir el ejercicio (Parte 2), cálculo de
-> estadísticos descriptivos a partir de listas de datos (Parte 3) y funciones
-> para obtener valores críticos de Z, t, chi-cuadrada y F (Parte 4).
+> estadísticos descriptivos a partir de listas de datos (Parte 3), funciones
+> para obtener valores críticos de Z, t, chi-cuadrada y F (Parte 4) e
+> identificación del método que corresponde al ejercicio (Parte 5).
 > Todavía no se resuelven intervalos de confianza ni pruebas de hipótesis.
 
 ## Cómo se usa la interfaz
@@ -21,7 +22,42 @@ JavaScript, sin dependencias ni paso de compilación.
    desconocida, si las varianzas se suponen iguales o diferentes.
 
 El botón **Revisar datos** indica si falta elegir algo. Si los datos vienen en
-lista, también calcula y muestra los estadísticos de cada muestra.
+lista, también calcula y muestra los estadísticos de cada muestra. Después
+muestra el **método identificado** con su distribución, grados de libertad y
+por qué corresponde, o explica qué dato falta o por qué no se puede decidir.
+
+## Identificación del método (`js/metodos.js`)
+
+La función `identificarMetodo` aplica reglas explícitas a lo que elige el
+usuario: tipo de ejercicio, caso, si σ es conocida, qué se supone de las
+varianzas y el tamaño de cada muestra (en lista se cuentan los datos; en
+estadísticas resumidas se usa el campo n). Una muestra es **grande si n ≥ 30**.
+
+| Caso | Condición | Método |
+|---|---|---|
+| Una media | σ conocida y n ≥ 30 | Z |
+| Una media | σ desconocida y n < 30 | t, gl = n − 1 |
+| Dos medias | σ₁ y σ₂ conocidas | Z |
+| Dos medias | σ desconocidas, varianzas iguales, n₁ y n₂ ≥ 30 | Z (con s₁ y s₂) |
+| Dos medias | σ desconocidas, varianzas iguales, n₁ y n₂ < 30 | t con varianza combinada, gl = n₁ + n₂ − 2 |
+| Dos medias | σ desconocidas, varianzas diferentes, no ambas n ≥ 30 | t con gl de Welch |
+| Una o dos proporciones | — | Z |
+| Una varianza | — | chi-cuadrada, gl = n − 1 |
+| Cociente de varianzas | — | F, gl = n₁ − 1 y n₂ − 1 |
+| Muestras pareadas | — | t, gl = n − 1 (n = número de pares) |
+
+Las reglas siguen la descripción de los casos del formulario. Una combinación que
+no coincide con exactamente una fila **no se asigna a ningún método**: la página
+explica por qué y pide confirmarlo con el profesor. Hoy eso ocurre con:
+
+- Una media con σ desconocida y n ≥ 30.
+- Una media con σ conocida y n < 30.
+- Dos medias con σ desconocidas y varianzas iguales, con una muestra grande y otra pequeña.
+- Dos medias con σ desconocidas, varianzas diferentes y ambas muestras grandes
+  (coinciden Z para muestras grandes y t de Welch).
+
+La página nunca toma una desviación muestral (s) como σ: σ solo se considera
+conocida si el usuario lo indica en el paso 4.
 
 ## Formato de las listas de datos
 
@@ -101,10 +137,12 @@ asistente-estadistico/
 ├── js/
 │   ├── estadistica.js  Lectura de listas y fórmulas de estadísticos
 │   ├── valores-criticos.js  Valores críticos de Z, t, chi-cuadrada y F
+│   ├── metodos.js   Reglas para identificar el método
 │   └── app.js       Interfaz: muestra campos y resultados
 ├── tests/
 │   ├── estadistica.test.js  Pruebas de js/estadistica.js
-│   └── valores-criticos.test.js  Pruebas de js/valores-criticos.js
+│   ├── valores-criticos.test.js  Pruebas de js/valores-criticos.js
+│   └── metodos.test.js  Pruebas de js/metodos.js
 └── README.md
 ```
 

@@ -2,6 +2,8 @@
 // Parte 2: muestra u oculta los campos del formulario según las opciones elegidas.
 // Parte 3: lee las listas de datos y muestra sus estadísticos descriptivos
 //          (las funciones de cálculo están en js/estadistica.js).
+// Parte 5: muestra qué método corresponde al ejercicio
+//          (las reglas están en js/metodos.js).
 // Todavía no se resuelven intervalos ni pruebas de hipótesis.
 
 const formulario = document.getElementById("formulario-ejercicio");
@@ -9,6 +11,8 @@ const avisoDatos = document.getElementById("aviso-datos");
 const estado = document.getElementById("estado");
 const resultados = document.getElementById("resultados");
 const contenidoResultados = document.getElementById("contenido-resultados");
+const tarjetaMetodo = document.getElementById("metodo");
+const contenidoMetodo = document.getElementById("contenido-metodo");
 
 // Opciones que deciden qué bloques se ven (coinciden con los atributos data-* del HTML).
 const CRITERIOS = ["tipo", "caso", "formato", "sigma"];
@@ -34,6 +38,17 @@ const LISTAS_POR_CASO = {
   "dos-proporciones": [["dp1-datos", "Muestra 1"], ["dp2-datos", "Muestra 2"]],
   "cociente-varianzas": [["cv1-datos", "Muestra 1"], ["cv2-datos", "Muestra 2"]],
   "pareadas": [["par1-datos", "Muestra 1"], ["par2-datos", "Muestra 2"]],
+};
+
+// Campos de tamaño de muestra de cada caso en estadísticas resumidas.
+const TAMANOS_POR_CASO = {
+  "una-media": ["media-n"],
+  "una-proporcion": ["prop-n"],
+  "una-varianza": ["var-n"],
+  "dos-medias": ["dm1-n", "dm2-n"],
+  "dos-proporciones": ["dp1-n", "dp2-n"],
+  "cociente-varianzas": ["cv1-n", "cv2-n"],
+  "pareadas": ["par-n"],
 };
 
 // Lee las opciones elegidas. Si una opción no se ha elegido, su valor es "".
@@ -83,6 +98,8 @@ function limpiarResultados() {
   mostrarMensaje("", false);
   resultados.hidden = true;
   contenidoResultados.replaceChildren();
+  tarjetaMetodo.hidden = true;
+  contenidoMetodo.replaceChildren();
   for (const campo of formulario.querySelectorAll("[aria-invalid]")) {
     campo.removeAttribute("aria-invalid");
   }
@@ -143,19 +160,69 @@ function revisarDatos(evento) {
   }
   const resumen = "Selección: " + partes.join(" · ") + ".";
 
-  if (seleccion.formato === "resumen") {
-    mostrarMensaje(resumen + " La resolución del ejercicio se agregará en las siguientes partes del proyecto.", false);
+  // Tamaños de muestra: en lista se cuentan los datos leídos (y se muestran sus
+  // estadísticos); en estadísticas resumidas se leen los campos n.
+  let tamanos;
+  if (seleccion.formato === "lista") {
+    tamanos = mostrarEstadisticos(seleccion.caso);
+    if (tamanos === null) return; // hay datos inválidos; el error ya se mostró
+  } else {
+    tamanos = leerTamanosResumen(seleccion.caso);
+  }
+
+  // Identificar el método (las reglas están en js/metodos.js).
+  const metodo = identificarMetodo({
+    tipo: seleccion.tipo,
+    caso: seleccion.caso,
+    sigma: seleccion.sigma,
+    varianzas: seleccion.varianzas,
+    tamanos: tamanos,
+  });
+
+  if (metodo.estado === "falta-dato") {
+    mostrarMensaje("Falta información para elegir el método: " + metodo.mensaje, true);
     return;
   }
 
-  // Datos en lista: leer, validar y calcular estadísticos.
-  if (mostrarEstadisticos(seleccion.caso)) {
-    mostrarMensaje(resumen + " Revisa abajo los estadísticos calculados.", false);
+  mostrarMetodo(metodo);
+  if (metodo.estado === "identificado") {
+    mostrarMensaje(resumen + " Revisa abajo el método identificado. " +
+      "La resolución del ejercicio se agregará en las siguientes partes del proyecto.", false);
+  } else {
+    mostrarMensaje(resumen + " No se pudo determinar el método con seguridad; revisa la explicación abajo.", true);
   }
 }
 
+// Lee los campos n del caso elegido (estadísticas resumidas).
+// Un campo vacío o con texto que no es número se devuelve como null.
+function leerTamanosResumen(caso) {
+  const tamanos = [];
+  for (const id of TAMANOS_POR_CASO[caso]) {
+    const texto = document.getElementById(id).value.trim();
+    tamanos.push(texto === "" ? null : Number(texto));
+  }
+  return tamanos;
+}
+
+// Muestra el método identificado, o por qué no se pudo determinar.
+function mostrarMetodo(metodo) {
+  if (metodo.estado === "identificado") {
+    agregarElemento("h3", metodo.metodo, contenidoMetodo);
+    agregarTabla(["Dato", "Valor"], [
+      ["Distribución", metodo.distribucion],
+      ["Grados de libertad", metodo.gradosLibertad === null ? "No aplica" : metodo.gradosLibertad],
+    ], contenidoMetodo);
+    agregarElemento("p", "Por qué: " + metodo.explicacion, contenidoMetodo);
+  } else {
+    agregarElemento("h3", "No se puede determinar el método con seguridad", contenidoMetodo);
+    agregarElemento("p", metodo.mensaje, contenidoMetodo).className = "no-determinado";
+  }
+  tarjetaMetodo.hidden = false;
+}
+
 // Lee las listas del caso elegido y muestra sus estadísticos.
-// Si algún dato no es válido, muestra los errores y devuelve false.
+// Devuelve los tamaños de las muestras ([n] o [n₁, n₂]).
+// Si algún dato no es válido, muestra los errores y devuelve null.
 function mostrarEstadisticos(caso) {
   const esProporcion = caso === "una-proporcion" || caso === "dos-proporciones";
   const muestras = []; // cada elemento: { nombre, valores }
@@ -191,7 +258,7 @@ function mostrarEstadisticos(caso) {
     }
     mostrarMensaje("Corrige los datos:\n" + errores.join("\n"), true);
     camposConError[0].focus();
-    return false;
+    return null;
   }
 
   // Estadísticos de cada muestra.
@@ -221,7 +288,7 @@ function mostrarEstadisticos(caso) {
   agregarElemento("p", "Los valores calculados se muestran redondeados a 4 decimales; " +
     "los cálculos internos usan todos los decimales.").className = "ayuda";
   resultados.hidden = false;
-  return true;
+  return muestras.map(function (muestra) { return muestra.valores.length; });
 }
 
 // Filas de la tabla de estadísticos de una lista numérica.
@@ -253,17 +320,18 @@ function formatear(numero) {
   return String(Number(numero.toFixed(4)));
 }
 
-// Crea un elemento con texto y lo agrega a los resultados.
+// Crea un elemento con texto y lo agrega a los resultados (o al contenedor indicado).
 // Se usa textContent para que lo escrito por el usuario se muestre como texto.
-function agregarElemento(etiqueta, texto) {
+function agregarElemento(etiqueta, texto, contenedor = contenidoResultados) {
   const elemento = document.createElement(etiqueta);
   elemento.textContent = texto;
-  contenidoResultados.appendChild(elemento);
+  contenedor.appendChild(elemento);
   return elemento;
 }
 
-// Crea una tabla con encabezados y filas, y la agrega a los resultados.
-function agregarTabla(encabezados, filas) {
+// Crea una tabla con encabezados y filas, y la agrega a los resultados
+// (o al contenedor indicado).
+function agregarTabla(encabezados, filas, destino = contenidoResultados) {
   const contenedor = document.createElement("div");
   contenedor.className = "tabla-contenedor";
   const tabla = document.createElement("table");
@@ -285,7 +353,7 @@ function agregarTabla(encabezados, filas) {
   }
 
   contenedor.appendChild(tabla);
-  contenidoResultados.appendChild(contenedor);
+  destino.appendChild(contenedor);
 }
 
 // Cualquier cambio en el formulario actualiza los campos visibles y borra

@@ -183,8 +183,20 @@ textarea[aria-invalid="true"] {
   border: 2px solid #b00020;
 }
 
-#resultados {
+#resultados,
+#metodo {
   margin-top: 16px;
+}
+
+/* ---------- Método identificado (Parte 5) ---------- */
+
+#metodo h3 {
+  margin: 0 0 8px;
+}
+
+/* Aviso cuando no se puede determinar el método */
+#metodo .no-determinado {
+  color: #b00020;
 }
 
 #resultados h3 {
