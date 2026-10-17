@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asistente Estadístico</title>
   <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/estadistica.js" defer></script>
   <script src="js/app.js" defer></script>
 </head>
 <body>
@@ -134,7 +135,7 @@
           <div class="campo">
             <label for="media-datos">Observaciones</label>
             <textarea id="media-datos" name="media-datos" rows="3" aria-describedby="ayuda-media-datos"></textarea>
-            <p class="ayuda" id="ayuda-media-datos">Separa los valores con comas o espacios y usa punto decimal. Ejemplo: 12.5, 14, 15.2</p>
+            <p class="ayuda" id="ayuda-media-datos">Separa los valores con comas, espacios o saltos de línea (12.5, 14, 15.2). Si usas coma decimal, separa con punto y coma (12,5; 14; 15,2).</p>
           </div>
         </fieldset>
 
@@ -172,7 +173,7 @@
           <div class="campo">
             <label for="prop-datos">Resultados (1 = éxito, 0 = fracaso)</label>
             <textarea id="prop-datos" name="prop-datos" rows="3" aria-describedby="ayuda-prop-datos"></textarea>
-            <p class="ayuda" id="ayuda-prop-datos">Escribe solo 0 y 1, separados por comas o espacios. Ejemplo: 1, 0, 1, 1, 0</p>
+            <p class="ayuda" id="ayuda-prop-datos">Escribe solo 0 y 1, separados por comas, espacios o punto y coma. Ejemplo: 1, 0, 1, 1, 0</p>
           </div>
         </fieldset>
 
@@ -200,7 +201,7 @@
           <div class="campo">
             <label for="var-datos">Observaciones</label>
             <textarea id="var-datos" name="var-datos" rows="3" aria-describedby="ayuda-var-datos"></textarea>
-            <p class="ayuda" id="ayuda-var-datos">Separa los valores con comas o espacios y usa punto decimal. Ejemplo: 12.5, 14, 15.2</p>
+            <p class="ayuda" id="ayuda-var-datos">Separa los valores con comas, espacios o saltos de línea (12.5, 14, 15.2). Si usas coma decimal, separa con punto y coma (12,5; 14; 15,2).</p>
           </div>
         </fieldset>
 
@@ -234,7 +235,7 @@
               <textarea id="dm2-datos" name="dm2-datos" rows="3" aria-describedby="ayuda-dm-datos"></textarea>
             </div>
           </div>
-          <p class="ayuda" id="ayuda-dm-datos">Separa los valores con comas o espacios y usa punto decimal. Las muestras pueden tener distinto tamaño.</p>
+          <p class="ayuda" id="ayuda-dm-datos">Separa los valores con comas, espacios o saltos de línea (12.5, 14, 15.2). Si usas coma decimal, separa con punto y coma (12,5; 14; 15,2). Las muestras pueden tener distinto tamaño.</p>
         </fieldset>
 
         <fieldset class="bloque condicional" data-caso="dos-medias" data-formato="resumen">
@@ -304,7 +305,7 @@
               <textarea id="dp2-datos" name="dp2-datos" rows="3" aria-describedby="ayuda-dp-datos"></textarea>
             </div>
           </div>
-          <p class="ayuda" id="ayuda-dp-datos">Escribe 1 para éxito y 0 para fracaso, separados por comas o espacios.</p>
+          <p class="ayuda" id="ayuda-dp-datos">Escribe 1 para éxito y 0 para fracaso, separados por comas, espacios o punto y coma.</p>
         </fieldset>
 
         <fieldset class="bloque condicional" data-caso="dos-proporciones" data-formato="resumen">
@@ -355,7 +356,7 @@
               <textarea id="cv2-datos" name="cv2-datos" rows="3" aria-describedby="ayuda-cv-datos"></textarea>
             </div>
           </div>
-          <p class="ayuda" id="ayuda-cv-datos">Separa los valores con comas o espacios y usa punto decimal.</p>
+          <p class="ayuda" id="ayuda-cv-datos">Separa los valores con comas, espacios o saltos de línea (12.5, 14, 15.2). Si usas coma decimal, separa con punto y coma (12,5; 14; 15,2).</p>
         </fieldset>
 
         <fieldset class="bloque condicional" data-caso="cociente-varianzas" data-formato="resumen">
@@ -406,7 +407,7 @@
               <textarea id="par2-datos" name="par2-datos" rows="3" aria-describedby="ayuda-par-datos"></textarea>
             </div>
           </div>
-          <p class="ayuda" id="ayuda-par-datos">Ambas listas deben tener la misma cantidad de valores y estar en el mismo orden: el primer valor de la muestra 1 va con el primero de la muestra 2, y así sucesivamente.</p>
+          <p class="ayuda" id="ayuda-par-datos">Separa los valores con comas, espacios o saltos de línea (12.5, 14, 15.2). Si usas coma decimal, separa con punto y coma (12,5; 14; 15,2). Ambas listas deben tener la misma cantidad de valores y estar en el mismo orden: el primer valor de la muestra 1 va con el primero de la muestra 2, y así sucesivamente.</p>
         </fieldset>
 
         <fieldset class="bloque condicional" data-caso="pareadas" data-formato="resumen">
@@ -427,10 +428,17 @@
       </section>
 
       <div class="acciones">
-        <button type="submit">Revisar selección</button>
+        <button type="submit">Revisar datos</button>
         <p id="estado" role="status" aria-live="polite"></p>
       </div>
     </form>
+
+    <!-- Estadísticos calculados a partir de las listas (Parte 3) -->
+    <section id="resultados" class="tarjeta" hidden>
+      <h2>Estadísticos de los datos</h2>
+      <p class="ayuda">Revisa que los valores leídos coincidan con el enunciado antes de resolver el ejercicio.</p>
+      <div id="contenido-resultados"></div>
+    </section>
   </main>
 
   <footer class="pie">

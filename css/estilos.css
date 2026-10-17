@@ -166,3 +166,54 @@ button:hover {
 #estado {
   margin: 12px 0 0;
 }
+
+/* ---------- Estadísticos de los datos (Parte 3) ---------- */
+
+/* Mensajes de error: en rojo y con un renglón por error */
+#estado {
+  white-space: pre-line;
+}
+
+#estado.error {
+  color: #b00020;
+}
+
+/* Campo con datos que hay que corregir */
+textarea[aria-invalid="true"] {
+  border: 2px solid #b00020;
+}
+
+#resultados {
+  margin-top: 16px;
+}
+
+#resultados h3 {
+  margin: 20px 0 4px;
+}
+
+/* Las listas largas de valores leídos se parten en varias líneas */
+#contenido-resultados p {
+  overflow-wrap: anywhere;
+}
+
+/* Si una tabla no cabe en el móvil, se desplaza ella y no toda la página */
+.tabla-contenedor {
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  padding: 6px 8px;
+  text-align: left;
+  border: 1px solid #d0d7de;
+}
+
+th {
+  background-color: #eef2f6;
+}

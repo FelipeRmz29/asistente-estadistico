@@ -4,8 +4,9 @@ Aplicación web sencilla para resolver ejercicios del segundo parcial de Estadí
 (intervalos de confianza y pruebas de hipótesis). Está hecha solo con HTML, CSS y
 JavaScript, sin dependencias ni paso de compilación.
 
-> Estado actual: interfaz para elegir el ejercicio y capturar los datos (Parte 2).
-> Todavía no se realizan cálculos.
+> Estado actual: interfaz para elegir el ejercicio (Parte 2) y cálculo de
+> estadísticos descriptivos a partir de listas de datos (Parte 3).
+> Todavía no se resuelven intervalos de confianza ni pruebas de hipótesis.
 
 ## Cómo se usa la interfaz
 
@@ -18,7 +19,34 @@ JavaScript, sin dependencias ni paso de compilación.
    En una media y dos medias se pregunta si σ es conocida; en dos medias con σ
    desconocida, si las varianzas se suponen iguales o diferentes.
 
-El botón **Revisar selección** indica si falta elegir algo y muestra un resumen.
+El botón **Revisar datos** indica si falta elegir algo. Si los datos vienen en
+lista, también calcula y muestra los estadísticos de cada muestra.
+
+## Formato de las listas de datos
+
+- Separa los datos con comas, espacios o saltos de línea y usa punto decimal:
+  `12.5, 14, 15.2`
+- Si usas coma decimal, separa los datos con punto y coma: `12,5; 14; 15,2`
+  (cuando el texto tiene `;`, la coma se interpreta como decimal).
+- Para proporciones escribe solo `1` (éxito) y `0` (fracaso).
+- En datos pareados, las dos listas deben tener la misma cantidad de datos y el
+  mismo orden. Las diferencias se calculan como d = muestra 1 − muestra 2.
+
+Si un dato no es un número válido, la página indica cuál es (por ejemplo
+"El dato 2 («a») no es un número válido") y marca el campo en rojo.
+
+Estadísticos calculados (fórmulas implementadas en `js/estadistica.js`):
+
+| Estadístico | Fórmula |
+|---|---|
+| Media muestral | x̄ = Σxᵢ / n |
+| Varianza muestral | s² = Σ(xᵢ − x̄)² / (n − 1) |
+| Desviación estándar muestral | s = √s² |
+| Proporción muestral | p̂ = x / n (x = número de unos) |
+
+Con un solo dato no se puede calcular la varianza (n − 1 = 0) y la página lo indica.
+Los resultados se muestran redondeados a 4 decimales, pero los cálculos usan
+todos los decimales.
 
 Para mostrar u ocultar campos, cada bloque del HTML con la clase `condicional`
 indica en sus atributos `data-tipo`, `data-caso`, `data-formato` y `data-sigma`
@@ -33,7 +61,10 @@ asistente-estadistico/
 ├── css/
 │   └── estilos.css  Estilos del sitio
 ├── js/
-│   └── app.js       Muestra u oculta campos según lo elegido
+│   ├── estadistica.js  Lectura de listas y fórmulas de estadísticos
+│   └── app.js       Interfaz: muestra campos y resultados
+├── tests/
+│   └── estadistica.test.js  Pruebas de js/estadistica.js
 └── README.md
 ```
 
@@ -55,6 +86,17 @@ carpeta del proyecto:
 
 Para comprobar que funciona, al elegir un caso y un formato deben aparecer sus
 campos, y la consola del navegador (F12) no debe tener errores.
+
+## Ejecutar las pruebas
+
+Las pruebas usan el ejecutor incluido en Node.js (versión 18 o más reciente),
+sin instalar nada más. Desde la carpeta del proyecto:
+
+```
+node --test
+```
+
+Debe terminar con `fail 0`.
 
 ## Desplegar en Vercel
 
