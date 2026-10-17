@@ -4,8 +4,9 @@ Aplicación web sencilla para resolver ejercicios del segundo parcial de Estadí
 (intervalos de confianza y pruebas de hipótesis). Está hecha solo con HTML, CSS y
 JavaScript, sin dependencias ni paso de compilación.
 
-> Estado actual: interfaz para elegir el ejercicio (Parte 2) y cálculo de
-> estadísticos descriptivos a partir de listas de datos (Parte 3).
+> Estado actual: interfaz para elegir el ejercicio (Parte 2), cálculo de
+> estadísticos descriptivos a partir de listas de datos (Parte 3) y funciones
+> para obtener valores críticos de Z, t, chi-cuadrada y F (Parte 4).
 > Todavía no se resuelven intervalos de confianza ni pruebas de hipótesis.
 
 ## Cómo se usa la interfaz
@@ -48,6 +49,43 @@ Con un solo dato no se puede calcular la varianza (n − 1 = 0) y la página lo 
 Los resultados se muestran redondeados a 4 decimales, pero los cálculos usan
 todos los decimales.
 
+## Valores críticos (`js/valores-criticos.js`)
+
+No se usa ninguna librería. Cada distribución tiene su función de distribución
+acumulada (CDF), calculada con las funciones gamma y beta incompletas, y el valor
+crítico es el número x tal que CDF(x) = probabilidad, que se busca por bisección.
+
+**Convención:** la probabilidad es el **área acumulada a la izquierda** del valor
+(igual que `NORM.S.INV`, `T.INV`, `CHISQ.INV` y `F.INV` de Excel). Por ejemplo,
+con 95 % de confianza z_{α/2} = z₀.₀₂₅ deja 0.025 a la derecha, o sea 0.975 a la
+izquierda.
+
+| Función | Distribución y parámetros | Ejemplo |
+|---|---|---|
+| `valorCriticoZ(p)` | Normal estándar | `valorCriticoZ(0.975)` → 1.95996… |
+| `valorCriticoT(p, gl)` | t de Student, gl grados de libertad | `valorCriticoT(0.975, 10)` → 2.22814… |
+| `valorCriticoChi2(p, gl)` | Chi-cuadrada, gl grados de libertad | `valorCriticoChi2(0.95, 10)` → 18.30704… |
+| `valorCriticoF(p, gl1, gl2)` | F, gl1 del numerador y gl2 del denominador | `valorCriticoF(0.95, 5, 10)` → 3.32583… |
+
+Cada función devuelve un objeto con `distribucion`, `parametros`,
+`areaIzquierda`, `areaDerecha`, `valor` y un texto `descripcion`, por ejemplo:
+"Distribución t de Student, gl = 10; área a la izquierda = 0.975, área a la
+derecha = 0.025". Si algo no es válido devuelve `{ error: "mensaje" }`.
+
+**Rango admitido** (fuera de él se devuelve un error, no un valor):
+
+- Probabilidad entre 0.000001 y 0.999999.
+- Grados de libertad entre 1 y 1 000 000. Se aceptan valores no enteros (por
+  ejemplo, los gl de Welch para dos medias con varianzas diferentes).
+- Si un cálculo interno no converge, también se devuelve un error.
+
+**Precisión y redondeo:** el valor crítico se devuelve con todos los decimales
+y así debe usarse en los cálculos. Comparado con SciPy, el error relativo es
+menor que 1×10⁻¹⁰ con gl ≤ 1000 y menor que 1×10⁻⁸ en todo el rango. Al mostrar
+resultados se redondea a 4 decimales (función `formatear` de `js/app.js`).
+
+## Interfaz: campos condicionales
+
 Para mostrar u ocultar campos, cada bloque del HTML con la clase `condicional`
 indica en sus atributos `data-tipo`, `data-caso`, `data-formato` y `data-sigma`
 para qué opciones se debe ver. La función `actualizarCampos()` de `js/app.js`
@@ -62,9 +100,11 @@ asistente-estadistico/
 │   └── estilos.css  Estilos del sitio
 ├── js/
 │   ├── estadistica.js  Lectura de listas y fórmulas de estadísticos
+│   ├── valores-criticos.js  Valores críticos de Z, t, chi-cuadrada y F
 │   └── app.js       Interfaz: muestra campos y resultados
 ├── tests/
-│   └── estadistica.test.js  Pruebas de js/estadistica.js
+│   ├── estadistica.test.js  Pruebas de js/estadistica.js
+│   └── valores-criticos.test.js  Pruebas de js/valores-criticos.js
 └── README.md
 ```
 
