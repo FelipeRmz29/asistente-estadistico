@@ -14,11 +14,423 @@
   </header>
 
   <main class="contenido">
-    <section class="tarjeta">
-      <h2>Ejercicio</h2>
-      <!-- Aquí irá el formulario para elegir y resolver el ejercicio (Parte 2). -->
-      <p id="estado">Cargando…</p>
-    </section>
+    <!--
+      Cómo se muestran los campos:
+      Los bloques con la clase "condicional" solo se ven cuando las opciones
+      elegidas coinciden con sus atributos data-*. Por ejemplo,
+      data-caso="una-media" data-formato="resumen" significa:
+      "mostrar solo si el caso es una media Y el formato es estadísticas resumidas".
+      Si un atributo tiene varios valores separados por espacio, basta con que coincida uno.
+      La lógica está en js/app.js.
+    -->
+    <form id="formulario-ejercicio" novalidate>
+
+      <!-- 1. Tipo de ejercicio y nivel -->
+      <section class="tarjeta">
+        <h2>1. ¿Qué vas a resolver?</h2>
+
+        <fieldset class="opciones">
+          <legend>Tipo de ejercicio</legend>
+          <label class="opcion">
+            <input type="radio" name="tipo" value="intervalo">
+            Intervalo de confianza
+          </label>
+          <label class="opcion">
+            <input type="radio" name="tipo" value="prueba">
+            Prueba de hipótesis
+          </label>
+        </fieldset>
+
+        <div class="campo condicional" data-tipo="intervalo">
+          <label for="nivel-confianza">Nivel de confianza (%)</label>
+          <input type="number" id="nivel-confianza" name="nivel-confianza"
+                 value="95" step="any" inputmode="decimal" aria-describedby="ayuda-confianza">
+          <p class="ayuda" id="ayuda-confianza">Escribe un porcentaje, por ejemplo 90, 95 o 99.</p>
+        </div>
+
+        <div class="campo condicional" data-tipo="prueba">
+          <label for="nivel-significancia">Nivel de significancia (α)</label>
+          <input type="number" id="nivel-significancia" name="nivel-significancia"
+                 value="0.05" step="any" inputmode="decimal" aria-describedby="ayuda-significancia">
+          <p class="ayuda" id="ayuda-significancia">Escribe un valor entre 0 y 1, por ejemplo 0.01, 0.05 o 0.10.</p>
+        </div>
+      </section>
+
+      <!-- 2. Caso o parámetro -->
+      <section class="tarjeta">
+        <h2>2. ¿Sobre qué parámetro es el ejercicio?</h2>
+
+        <div class="campo">
+          <label for="caso">Caso</label>
+          <select id="caso" name="caso">
+            <option value="">— Elige un caso —</option>
+            <optgroup label="Una muestra">
+              <option value="una-media">Una media (μ)</option>
+              <option value="una-proporcion">Una proporción (p)</option>
+              <option value="una-varianza">Una varianza (σ²)</option>
+            </optgroup>
+            <optgroup label="Dos muestras">
+              <option value="dos-medias">Dos medias, muestras independientes (μ₁ − μ₂)</option>
+              <option value="dos-proporciones">Dos proporciones (p₁ − p₂)</option>
+              <option value="cociente-varianzas">Cociente de varianzas (σ₁² / σ₂²)</option>
+              <option value="pareadas">Muestras pareadas (μ_d)</option>
+            </optgroup>
+          </select>
+        </div>
+      </section>
+
+      <!-- 3. Formato de los datos -->
+      <section class="tarjeta">
+        <h2>3. ¿Cómo vienen los datos?</h2>
+
+        <fieldset class="opciones">
+          <legend>Formato de entrada</legend>
+          <label class="opcion">
+            <input type="radio" name="formato" value="lista">
+            Datos individuales (lista de valores)
+          </label>
+          <label class="opcion">
+            <input type="radio" name="formato" value="resumen">
+            Estadísticas resumidas (n, media, desviación…)
+          </label>
+        </fieldset>
+      </section>
+
+      <!-- 4. Datos del ejercicio -->
+      <section class="tarjeta">
+        <h2>4. Datos del ejercicio</h2>
+
+        <p id="aviso-datos" class="ayuda">Elige el caso (paso 2) y el formato (paso 3) para ver los campos.</p>
+
+        <!-- Preguntas para una media y dos medias -->
+        <fieldset class="opciones condicional" data-caso="una-media dos-medias" data-formato="lista resumen">
+          <legend>¿El enunciado da la desviación estándar poblacional (σ)?</legend>
+          <p class="ayuda">En dos medias se refiere a σ₁ y σ₂. Si solo da la desviación de la muestra (s), elige "No".</p>
+          <label class="opcion">
+            <input type="radio" name="sigma" value="conocida">
+            Sí, σ es conocida
+          </label>
+          <label class="opcion">
+            <input type="radio" name="sigma" value="desconocida">
+            No, σ es desconocida
+          </label>
+        </fieldset>
+
+        <fieldset class="opciones condicional" data-caso="dos-medias" data-formato="lista resumen" data-sigma="desconocida">
+          <legend>¿Qué indica el enunciado sobre las varianzas poblacionales?</legend>
+          <label class="opcion">
+            <input type="radio" name="varianzas" value="iguales">
+            Se suponen iguales
+          </label>
+          <label class="opcion">
+            <input type="radio" name="varianzas" value="diferentes">
+            Se suponen diferentes
+          </label>
+        </fieldset>
+
+        <!-- Una media -->
+        <fieldset class="bloque condicional" data-caso="una-media" data-formato="lista">
+          <legend>Datos de la muestra</legend>
+          <div class="campo">
+            <label for="media-datos">Observaciones</label>
+            <textarea id="media-datos" name="media-datos" rows="3" aria-describedby="ayuda-media-datos"></textarea>
+            <p class="ayuda" id="ayuda-media-datos">Separa los valores con comas o espacios y usa punto decimal. Ejemplo: 12.5, 14, 15.2</p>
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="una-media" data-formato="resumen">
+          <legend>Estadísticas de la muestra</legend>
+          <div class="campo">
+            <label for="media-n">Tamaño de muestra (n)</label>
+            <input type="number" id="media-n" name="media-n" min="1" step="1" inputmode="numeric">
+          </div>
+          <div class="campo">
+            <label for="media-xbarra">Media muestral (x̄)</label>
+            <input type="number" id="media-xbarra" name="media-xbarra" step="any" inputmode="decimal">
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="una-media" data-formato="lista resumen" data-sigma="conocida">
+          <legend>Dato poblacional</legend>
+          <div class="campo">
+            <label for="media-sigma">Desviación estándar poblacional (σ)</label>
+            <input type="number" id="media-sigma" name="media-sigma" min="0" step="any" inputmode="decimal">
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="una-media" data-formato="resumen" data-sigma="desconocida">
+          <legend>Dispersión de la muestra</legend>
+          <div class="campo">
+            <label for="media-s">Desviación estándar muestral (s)</label>
+            <input type="number" id="media-s" name="media-s" min="0" step="any" inputmode="decimal">
+          </div>
+        </fieldset>
+
+        <!-- Una proporción -->
+        <fieldset class="bloque condicional" data-caso="una-proporcion" data-formato="lista">
+          <legend>Resultados de la muestra</legend>
+          <div class="campo">
+            <label for="prop-datos">Resultados (1 = éxito, 0 = fracaso)</label>
+            <textarea id="prop-datos" name="prop-datos" rows="3" aria-describedby="ayuda-prop-datos"></textarea>
+            <p class="ayuda" id="ayuda-prop-datos">Escribe solo 0 y 1, separados por comas o espacios. Ejemplo: 1, 0, 1, 1, 0</p>
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="una-proporcion" data-formato="resumen">
+          <legend>Estadísticas de la muestra</legend>
+          <div class="campo">
+            <label for="prop-n">Tamaño de muestra (n)</label>
+            <input type="number" id="prop-n" name="prop-n" min="1" step="1" inputmode="numeric">
+          </div>
+          <p class="ayuda">Llena solo uno de los dos campos siguientes, según lo que dé el enunciado.</p>
+          <div class="campo">
+            <label for="prop-x">Número de éxitos (x)</label>
+            <input type="number" id="prop-x" name="prop-x" min="0" step="1" inputmode="numeric">
+          </div>
+          <div class="campo">
+            <label for="prop-phat">Proporción muestral (p̂)</label>
+            <input type="number" id="prop-phat" name="prop-phat" min="0" max="1" step="any" inputmode="decimal" aria-describedby="ayuda-prop-phat">
+            <p class="ayuda" id="ayuda-prop-phat">Entre 0 y 1. Si te dan un porcentaje, divide entre 100 (35 % → 0.35).</p>
+          </div>
+        </fieldset>
+
+        <!-- Una varianza -->
+        <fieldset class="bloque condicional" data-caso="una-varianza" data-formato="lista">
+          <legend>Datos de la muestra</legend>
+          <div class="campo">
+            <label for="var-datos">Observaciones</label>
+            <textarea id="var-datos" name="var-datos" rows="3" aria-describedby="ayuda-var-datos"></textarea>
+            <p class="ayuda" id="ayuda-var-datos">Separa los valores con comas o espacios y usa punto decimal. Ejemplo: 12.5, 14, 15.2</p>
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="una-varianza" data-formato="resumen">
+          <legend>Estadísticas de la muestra</legend>
+          <div class="campo">
+            <label for="var-n">Tamaño de muestra (n)</label>
+            <input type="number" id="var-n" name="var-n" min="1" step="1" inputmode="numeric">
+          </div>
+          <p class="ayuda">Llena solo uno de los dos campos siguientes, según lo que dé el enunciado.</p>
+          <div class="campo">
+            <label for="var-s">Desviación estándar muestral (s)</label>
+            <input type="number" id="var-s" name="var-s" min="0" step="any" inputmode="decimal">
+          </div>
+          <div class="campo">
+            <label for="var-s2">Varianza muestral (s²)</label>
+            <input type="number" id="var-s2" name="var-s2" min="0" step="any" inputmode="decimal">
+          </div>
+        </fieldset>
+
+        <!-- Dos medias (muestras independientes) -->
+        <fieldset class="bloque condicional" data-caso="dos-medias" data-formato="lista">
+          <legend>Datos de las muestras</legend>
+          <div class="dos-columnas">
+            <div class="campo">
+              <label for="dm1-datos">Observaciones de la muestra 1</label>
+              <textarea id="dm1-datos" name="dm1-datos" rows="3" aria-describedby="ayuda-dm-datos"></textarea>
+            </div>
+            <div class="campo">
+              <label for="dm2-datos">Observaciones de la muestra 2</label>
+              <textarea id="dm2-datos" name="dm2-datos" rows="3" aria-describedby="ayuda-dm-datos"></textarea>
+            </div>
+          </div>
+          <p class="ayuda" id="ayuda-dm-datos">Separa los valores con comas o espacios y usa punto decimal. Las muestras pueden tener distinto tamaño.</p>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="dos-medias" data-formato="resumen">
+          <legend>Estadísticas de las muestras</legend>
+          <div class="dos-columnas">
+            <div>
+              <div class="campo">
+                <label for="dm1-n">Tamaño de la muestra 1 (n₁)</label>
+                <input type="number" id="dm1-n" name="dm1-n" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="dm1-xbarra">Media de la muestra 1 (x̄₁)</label>
+                <input type="number" id="dm1-xbarra" name="dm1-xbarra" step="any" inputmode="decimal">
+              </div>
+            </div>
+            <div>
+              <div class="campo">
+                <label for="dm2-n">Tamaño de la muestra 2 (n₂)</label>
+                <input type="number" id="dm2-n" name="dm2-n" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="dm2-xbarra">Media de la muestra 2 (x̄₂)</label>
+                <input type="number" id="dm2-xbarra" name="dm2-xbarra" step="any" inputmode="decimal">
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="dos-medias" data-formato="lista resumen" data-sigma="conocida">
+          <legend>Datos poblacionales</legend>
+          <div class="dos-columnas">
+            <div class="campo">
+              <label for="dm1-sigma">Desviación poblacional 1 (σ₁)</label>
+              <input type="number" id="dm1-sigma" name="dm1-sigma" min="0" step="any" inputmode="decimal">
+            </div>
+            <div class="campo">
+              <label for="dm2-sigma">Desviación poblacional 2 (σ₂)</label>
+              <input type="number" id="dm2-sigma" name="dm2-sigma" min="0" step="any" inputmode="decimal">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="dos-medias" data-formato="resumen" data-sigma="desconocida">
+          <legend>Dispersión de las muestras</legend>
+          <div class="dos-columnas">
+            <div class="campo">
+              <label for="dm1-s">Desviación muestral 1 (s₁)</label>
+              <input type="number" id="dm1-s" name="dm1-s" min="0" step="any" inputmode="decimal">
+            </div>
+            <div class="campo">
+              <label for="dm2-s">Desviación muestral 2 (s₂)</label>
+              <input type="number" id="dm2-s" name="dm2-s" min="0" step="any" inputmode="decimal">
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Dos proporciones -->
+        <fieldset class="bloque condicional" data-caso="dos-proporciones" data-formato="lista">
+          <legend>Resultados de las muestras</legend>
+          <div class="dos-columnas">
+            <div class="campo">
+              <label for="dp1-datos">Resultados de la muestra 1</label>
+              <textarea id="dp1-datos" name="dp1-datos" rows="3" aria-describedby="ayuda-dp-datos"></textarea>
+            </div>
+            <div class="campo">
+              <label for="dp2-datos">Resultados de la muestra 2</label>
+              <textarea id="dp2-datos" name="dp2-datos" rows="3" aria-describedby="ayuda-dp-datos"></textarea>
+            </div>
+          </div>
+          <p class="ayuda" id="ayuda-dp-datos">Escribe 1 para éxito y 0 para fracaso, separados por comas o espacios.</p>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="dos-proporciones" data-formato="resumen">
+          <legend>Estadísticas de las muestras</legend>
+          <p class="ayuda">En cada muestra llena el número de éxitos (x) o la proporción (p̂), no ambos.</p>
+          <div class="dos-columnas">
+            <div>
+              <div class="campo">
+                <label for="dp1-n">Tamaño de la muestra 1 (n₁)</label>
+                <input type="number" id="dp1-n" name="dp1-n" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="dp1-x">Éxitos en la muestra 1 (x₁)</label>
+                <input type="number" id="dp1-x" name="dp1-x" min="0" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="dp1-phat">Proporción de la muestra 1 (p̂₁)</label>
+                <input type="number" id="dp1-phat" name="dp1-phat" min="0" max="1" step="any" inputmode="decimal">
+              </div>
+            </div>
+            <div>
+              <div class="campo">
+                <label for="dp2-n">Tamaño de la muestra 2 (n₂)</label>
+                <input type="number" id="dp2-n" name="dp2-n" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="dp2-x">Éxitos en la muestra 2 (x₂)</label>
+                <input type="number" id="dp2-x" name="dp2-x" min="0" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="dp2-phat">Proporción de la muestra 2 (p̂₂)</label>
+                <input type="number" id="dp2-phat" name="dp2-phat" min="0" max="1" step="any" inputmode="decimal">
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Cociente de varianzas -->
+        <fieldset class="bloque condicional" data-caso="cociente-varianzas" data-formato="lista">
+          <legend>Datos de las muestras</legend>
+          <div class="dos-columnas">
+            <div class="campo">
+              <label for="cv1-datos">Observaciones de la muestra 1</label>
+              <textarea id="cv1-datos" name="cv1-datos" rows="3" aria-describedby="ayuda-cv-datos"></textarea>
+            </div>
+            <div class="campo">
+              <label for="cv2-datos">Observaciones de la muestra 2</label>
+              <textarea id="cv2-datos" name="cv2-datos" rows="3" aria-describedby="ayuda-cv-datos"></textarea>
+            </div>
+          </div>
+          <p class="ayuda" id="ayuda-cv-datos">Separa los valores con comas o espacios y usa punto decimal.</p>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="cociente-varianzas" data-formato="resumen">
+          <legend>Estadísticas de las muestras</legend>
+          <p class="ayuda">En cada muestra llena la desviación (s) o la varianza (s²), no ambas.</p>
+          <div class="dos-columnas">
+            <div>
+              <div class="campo">
+                <label for="cv1-n">Tamaño de la muestra 1 (n₁)</label>
+                <input type="number" id="cv1-n" name="cv1-n" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="cv1-s">Desviación muestral 1 (s₁)</label>
+                <input type="number" id="cv1-s" name="cv1-s" min="0" step="any" inputmode="decimal">
+              </div>
+              <div class="campo">
+                <label for="cv1-s2">Varianza muestral 1 (s₁²)</label>
+                <input type="number" id="cv1-s2" name="cv1-s2" min="0" step="any" inputmode="decimal">
+              </div>
+            </div>
+            <div>
+              <div class="campo">
+                <label for="cv2-n">Tamaño de la muestra 2 (n₂)</label>
+                <input type="number" id="cv2-n" name="cv2-n" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="cv2-s">Desviación muestral 2 (s₂)</label>
+                <input type="number" id="cv2-s" name="cv2-s" min="0" step="any" inputmode="decimal">
+              </div>
+              <div class="campo">
+                <label for="cv2-s2">Varianza muestral 2 (s₂²)</label>
+                <input type="number" id="cv2-s2" name="cv2-s2" min="0" step="any" inputmode="decimal">
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Muestras pareadas -->
+        <fieldset class="bloque condicional" data-caso="pareadas" data-formato="lista">
+          <legend>Datos pareados</legend>
+          <div class="dos-columnas">
+            <div class="campo">
+              <label for="par1-datos">Muestra 1 (por ejemplo, "antes")</label>
+              <textarea id="par1-datos" name="par1-datos" rows="3" aria-describedby="ayuda-par-datos"></textarea>
+            </div>
+            <div class="campo">
+              <label for="par2-datos">Muestra 2 (por ejemplo, "después")</label>
+              <textarea id="par2-datos" name="par2-datos" rows="3" aria-describedby="ayuda-par-datos"></textarea>
+            </div>
+          </div>
+          <p class="ayuda" id="ayuda-par-datos">Ambas listas deben tener la misma cantidad de valores y estar en el mismo orden: el primer valor de la muestra 1 va con el primero de la muestra 2, y así sucesivamente.</p>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-caso="pareadas" data-formato="resumen">
+          <legend>Estadísticas de las diferencias (d = muestra 1 − muestra 2)</legend>
+          <div class="campo">
+            <label for="par-n">Número de pares (n)</label>
+            <input type="number" id="par-n" name="par-n" min="1" step="1" inputmode="numeric">
+          </div>
+          <div class="campo">
+            <label for="par-dbarra">Media de las diferencias (d̄)</label>
+            <input type="number" id="par-dbarra" name="par-dbarra" step="any" inputmode="decimal">
+          </div>
+          <div class="campo">
+            <label for="par-sd">Desviación estándar de las diferencias (s_d)</label>
+            <input type="number" id="par-sd" name="par-sd" min="0" step="any" inputmode="decimal">
+          </div>
+        </fieldset>
+      </section>
+
+      <div class="acciones">
+        <button type="submit">Revisar selección</button>
+        <p id="estado" role="status" aria-live="polite"></p>
+      </div>
+    </form>
   </main>
 
   <footer class="pie">

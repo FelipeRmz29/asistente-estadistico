@@ -51,3 +51,118 @@ body {
   font-size: 0.9em;
   color: #555;
 }
+
+/* ---------- Formulario del ejercicio (Parte 2) ---------- */
+
+/* Asegura que los bloques ocultos no se vean aunque otra regla les dé display */
+[hidden] {
+  display: none !important;
+}
+
+/* Separación entre las tarjetas de cada paso */
+.tarjeta + .tarjeta {
+  margin-top: 16px;
+}
+
+fieldset {
+  min-width: 0; /* evita que el fieldset se desborde en pantallas angostas */
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+legend {
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+.campo {
+  margin-bottom: 14px;
+}
+
+.campo label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 8px;
+  font: inherit;
+  border: 1px solid #8c959f;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+input[type="number"] {
+  max-width: 320px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* Opciones de radio: cada una ocupa una línea y es fácil de tocar en móvil */
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.opcion input {
+  flex-shrink: 0; /* el botón no se encoge si el texto ocupa dos líneas */
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.ayuda {
+  margin: 4px 0 8px;
+  font-size: 0.9em;
+  color: #555;
+}
+
+/* Contorno visible al navegar con teclado */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 3px solid #f0a500;
+  outline-offset: 2px;
+}
+
+/* Muestra 1 y muestra 2 lado a lado en escritorio; una debajo de otra en móvil */
+.dos-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 0 16px;
+}
+
+.acciones {
+  margin-top: 16px;
+}
+
+button {
+  padding: 10px 20px;
+  font: inherit;
+  font-weight: bold;
+  color: #fff;
+  background-color: #1f4e79;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #163a5a;
+}
+
+#estado {
+  margin: 12px 0 0;
+}
