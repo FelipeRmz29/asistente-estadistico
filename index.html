@@ -8,6 +8,7 @@
   <script src="js/estadistica.js" defer></script>
   <script src="js/valores-criticos.js" defer></script>
   <script src="js/metodos.js" defer></script>
+  <script src="js/intervalos.js" defer></script>
   <script src="js/app.js" defer></script>
 </head>
 <body>
@@ -161,6 +162,15 @@
           </div>
         </fieldset>
 
+        <fieldset class="bloque condicional" data-tipo="intervalo" data-caso="una-media" data-formato="lista resumen" data-sigma="conocida">
+          <legend>Tamaño de muestra (opcional)</legend>
+          <div class="campo">
+            <label for="media-error">Error máximo deseado (e)</label>
+            <input type="number" id="media-error" name="media-error" min="0" step="any" inputmode="decimal" aria-describedby="ayuda-media-error">
+            <p class="ayuda" id="ayuda-media-error">Si el ejercicio pregunta qué tamaño de muestra se necesita, escribe el error máximo permitido. Se calcula n = (z<sub>α/2</sub> · σ / e)².</p>
+          </div>
+        </fieldset>
+
         <fieldset class="bloque condicional" data-caso="una-media" data-formato="resumen" data-sigma="desconocida">
           <legend>Dispersión de la muestra</legend>
           <div class="campo">
@@ -194,6 +204,15 @@
             <label for="prop-phat">Proporción muestral (p̂)</label>
             <input type="number" id="prop-phat" name="prop-phat" min="0" max="1" step="any" inputmode="decimal" aria-describedby="ayuda-prop-phat">
             <p class="ayuda" id="ayuda-prop-phat">Entre 0 y 1. Si te dan un porcentaje, divide entre 100 (35 % → 0.35).</p>
+          </div>
+        </fieldset>
+
+        <fieldset class="bloque condicional" data-tipo="intervalo" data-caso="una-proporcion" data-formato="lista resumen">
+          <legend>Tamaño de muestra (opcional)</legend>
+          <div class="campo">
+            <label for="prop-error">Error máximo deseado (e)</label>
+            <input type="number" id="prop-error" name="prop-error" min="0" max="1" step="any" inputmode="decimal" aria-describedby="ayuda-prop-error">
+            <p class="ayuda" id="ayuda-prop-error">Si el ejercicio pregunta qué tamaño de muestra se necesita, escribe el error máximo permitido entre 0 y 1 (3 % → 0.03). Se calcula n = z<sub>α/2</sub>² · p · q / e² con la p de la muestra.</p>
           </div>
         </fieldset>
 
@@ -446,6 +465,12 @@
     <section id="metodo" class="tarjeta" hidden>
       <h2>Método identificado</h2>
       <div id="contenido-metodo"></div>
+    </section>
+
+    <!-- Intervalo de confianza de una muestra (Parte 6) -->
+    <section id="intervalo" class="tarjeta" hidden>
+      <h2>Intervalo de confianza</h2>
+      <div id="contenido-intervalo"></div>
     </section>
   </main>
 

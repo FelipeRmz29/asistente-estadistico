@@ -47,10 +47,16 @@ test("el nombre del método indica si es intervalo o prueba", function () {
 
 // ---------- Una media ----------
 
-test("una media: σ conocida y muestra grande -> Z", function () {
-  esMetodo(identificar("una-media", "conocida", "", [30]), "normal estándar Z", null);
-  esMetodo(identificar("una-media", "conocida", "", [31]), "normal estándar Z", null);
-  assert.match(identificar("una-media", "conocida", "", [30]).explicacion, /n = 30 ≥ 30/);
+// Formulario: Z si "n ≥ 30 o σ² conocida"; t si "n < 30 y σ² desconocida".
+
+test("una media: σ conocida -> Z con cualquier tamaño", function () {
+  for (const n of [1, 29, 30, 31, 200]) {
+    const r = identificar("una-media", "conocida", "", [n]);
+    esMetodo(r, "normal estándar Z", null);
+    assert.equal(r.clave, "media-z");
+  }
+  // El tamaño no hace falta para decidir si σ es conocida.
+  esMetodo(identificar("una-media", "conocida", "", [null]), "normal estándar Z", null);
 });
 
 test("una media: σ desconocida y muestra pequeña -> t con n − 1 gl", function () {
@@ -59,14 +65,18 @@ test("una media: σ desconocida y muestra pequeña -> t con n − 1 gl", functio
   assert.match(identificar("una-media", "desconocida", "", [12]).explicacion, /n = 12 < 30/);
 });
 
-test("una media: σ desconocida y muestra grande no se decide por defecto", function () {
-  esEstado(identificar("una-media", "desconocida", "", [30]), "no-determinado", /Confirma con tu profesor/);
-  esEstado(identificar("una-media", "desconocida", "", [100]), "no-determinado", /n = 100/);
+test("una media: σ desconocida y n ≥ 30 -> Z, estimando σ con s", function () {
+  for (const n of [30, 31, 100]) {
+    const r = identificar("una-media", "desconocida", "", [n]);
+    esMetodo(r, "normal estándar Z", null);
+    assert.equal(r.clave, "media-z");
+    assert.match(r.explicacion, /se estima con la desviación muestral s/);
+  }
+  assert.match(identificar("una-media", "desconocida", "", [30]).explicacion, /n = 30 ≥ 30/);
 });
 
-test("una media: σ conocida y muestra pequeña no se decide por defecto", function () {
-  esEstado(identificar("una-media", "conocida", "", [29]), "no-determinado", /población sea normal/);
-  esEstado(identificar("una-media", "conocida", "", [1]), "no-determinado", /muestra es pequeña/);
+test("una media: σ desconocida y n < 30 usa la clave de t", function () {
+  assert.equal(identificar("una-media", "desconocida", "", [29]).clave, "media-t");
 });
 
 test("una media: con n = 1 y σ desconocida no se puede estimar σ", function () {
@@ -81,9 +91,9 @@ test("una media: pide si σ es conocida y no supone que s sea σ", function () {
   esEstado(identificar("una-media", undefined, "", [10]), "falta-dato", /σ/);
 });
 
-test("una media: pide el tamaño de muestra si falta o no es válido", function () {
+test("una media con σ desconocida: pide el tamaño de muestra si falta o no es válido", function () {
   esEstado(identificar("una-media", "desconocida", "", [null]), "falta-dato", /Falta el tamaño de la muestra \(n\)/);
-  esEstado(identificar("una-media", "conocida", "", []), "falta-dato", /grande \(n ≥ 30\) o pequeña/);
+  esEstado(identificar("una-media", "desconocida", "", []), "falta-dato", /n ≥ 30 \(se usa Z\) o n < 30 \(se usa t\)/);
   for (const n of [0, -5, 12.5, NaN]) {
     esEstado(identificar("una-media", "desconocida", "", [n]), "falta-dato", /número entero mayor o igual que 1/);
   }

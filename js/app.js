@@ -4,7 +4,9 @@
 //          (las funciones de cálculo están en js/estadistica.js).
 // Parte 5: muestra qué método corresponde al ejercicio
 //          (las reglas están en js/metodos.js).
-// Todavía no se resuelven intervalos ni pruebas de hipótesis.
+// Parte 6: calcula y muestra los intervalos de confianza de una muestra
+//          (las fórmulas están en js/intervalos.js).
+// Todavía no se resuelven intervalos de dos muestras ni pruebas de hipótesis.
 
 const formulario = document.getElementById("formulario-ejercicio");
 const avisoDatos = document.getElementById("aviso-datos");
@@ -13,6 +15,8 @@ const resultados = document.getElementById("resultados");
 const contenidoResultados = document.getElementById("contenido-resultados");
 const tarjetaMetodo = document.getElementById("metodo");
 const contenidoMetodo = document.getElementById("contenido-metodo");
+const tarjetaIntervalo = document.getElementById("intervalo");
+const contenidoIntervalo = document.getElementById("contenido-intervalo");
 
 // Opciones que deciden qué bloques se ven (coinciden con los atributos data-* del HTML).
 const CRITERIOS = ["tipo", "caso", "formato", "sigma"];
@@ -100,6 +104,8 @@ function limpiarResultados() {
   contenidoResultados.replaceChildren();
   tarjetaMetodo.hidden = true;
   contenidoMetodo.replaceChildren();
+  tarjetaIntervalo.hidden = true;
+  contenidoIntervalo.replaceChildren();
   for (const campo of formulario.querySelectorAll("[aria-invalid]")) {
     campo.removeAttribute("aria-invalid");
   }
@@ -132,8 +138,9 @@ function revisarDatos(evento) {
 
   // Nivel de confianza o de significancia, según el tipo de ejercicio.
   let nivel;
+  let confianza = null; // en %, solo para intervalos
   if (seleccion.tipo === "intervalo") {
-    const confianza = Number(formulario.elements["nivel-confianza"].value);
+    confianza = Number(formulario.elements["nivel-confianza"].value);
     if (!(confianza > 0 && confianza < 100)) {
       mostrarMensaje("El nivel de confianza debe ser un número mayor que 0 y menor que 100.", true);
       return;
@@ -162,10 +169,12 @@ function revisarDatos(evento) {
 
   // Tamaños de muestra: en lista se cuentan los datos leídos (y se muestran sus
   // estadísticos); en estadísticas resumidas se leen los campos n.
+  let muestras = null; // listas leídas: [{ nombre, valores }] (solo en formato lista)
   let tamanos;
   if (seleccion.formato === "lista") {
-    tamanos = mostrarEstadisticos(seleccion.caso);
-    if (tamanos === null) return; // hay datos inválidos; el error ya se mostró
+    muestras = mostrarEstadisticos(seleccion.caso);
+    if (muestras === null) return; // hay datos inválidos; el error ya se mostró
+    tamanos = muestras.map(function (muestra) { return muestra.valores.length; });
   } else {
     tamanos = leerTamanosResumen(seleccion.caso);
   }
@@ -185,23 +194,37 @@ function revisarDatos(evento) {
   }
 
   mostrarMetodo(metodo);
-  if (metodo.estado === "identificado") {
-    mostrarMensaje(resumen + " Revisa abajo el método identificado. " +
-      "La resolución del ejercicio se agregará en las siguientes partes del proyecto.", false);
-  } else {
+  if (metodo.estado !== "identificado") {
     mostrarMensaje(resumen + " No se pudo determinar el método con seguridad; revisa la explicación abajo.", true);
+    return;
   }
+
+  // Intervalos de una muestra (Parte 6). Los demás casos se resolverán en otras partes.
+  if (seleccion.tipo === "intervalo" && INTERVALOS_UNA_MUESTRA.includes(metodo.clave)) {
+    const presentacion = calcularIntervaloUnaMuestra(metodo.clave, seleccion.sigma, muestras, confianza);
+    if (presentacion.error) {
+      mostrarMensaje("No se pudo calcular el intervalo: " + presentacion.error, true);
+      return;
+    }
+    mostrarIntervalo(presentacion);
+    mostrarMensaje(resumen + " Revisa abajo el método y el intervalo de confianza.", false);
+    return;
+  }
+
+  mostrarMensaje(resumen + " Revisa abajo el método identificado. " +
+    "La resolución de este caso se agregará en las siguientes partes del proyecto.", false);
+}
+
+// Lee un campo numérico. Si está vacío devuelve null (dato faltante); si el
+// texto no es un número devuelve NaN, que las validaciones rechazan.
+function leerNumero(id) {
+  const texto = document.getElementById(id).value.trim();
+  return texto === "" ? null : Number(texto);
 }
 
 // Lee los campos n del caso elegido (estadísticas resumidas).
-// Un campo vacío o con texto que no es número se devuelve como null.
 function leerTamanosResumen(caso) {
-  const tamanos = [];
-  for (const id of TAMANOS_POR_CASO[caso]) {
-    const texto = document.getElementById(id).value.trim();
-    tamanos.push(texto === "" ? null : Number(texto));
-  }
-  return tamanos;
+  return TAMANOS_POR_CASO[caso].map(leerNumero);
 }
 
 // Muestra el método identificado, o por qué no se pudo determinar.
@@ -221,7 +244,7 @@ function mostrarMetodo(metodo) {
 }
 
 // Lee las listas del caso elegido y muestra sus estadísticos.
-// Devuelve los tamaños de las muestras ([n] o [n₁, n₂]).
+// Devuelve las muestras leídas: [{ nombre, valores }, ...].
 // Si algún dato no es válido, muestra los errores y devuelve null.
 function mostrarEstadisticos(caso) {
   const esProporcion = caso === "una-proporcion" || caso === "dos-proporciones";
@@ -288,7 +311,7 @@ function mostrarEstadisticos(caso) {
   agregarElemento("p", "Los valores calculados se muestran redondeados a 4 decimales; " +
     "los cálculos internos usan todos los decimales.").className = "ayuda";
   resultados.hidden = false;
-  return muestras.map(function (muestra) { return muestra.valores.length; });
+  return muestras;
 }
 
 // Filas de la tabla de estadísticos de una lista numérica.
@@ -313,6 +336,283 @@ function filasProporcion(p) {
     ["Éxitos (cantidad de unos)", "x", p.exitos],
     ["Proporción muestral", "p̂ = x / n", formatear(p.proporcion)],
   ];
+}
+
+// ---------- Intervalos de confianza de una muestra (Parte 6) ----------
+
+// Métodos (claves de js/metodos.js) cuyo intervalo ya se calcula.
+const INTERVALOS_UNA_MUESTRA = ["media-z", "media-t", "proporcion", "varianza"];
+
+// Reúne los datos del caso (de la lista o de los campos de estadísticas
+// resumidas), calcula el intervalo con js/intervalos.js y prepara lo que se
+// muestra. Devuelve { error } si un dato falta o no es válido.
+function calcularIntervaloUnaMuestra(clave, sigma, muestras, confianza) {
+  const valores = muestras === null ? null : muestras[0].valores; // null en estadísticas resumidas
+
+  if (clave === "proporcion") {
+    let n, exitos, proporcion;
+    if (valores) {
+      const p = calcularProporcion(valores);
+      n = p.n;
+      exitos = p.exitos;
+      proporcion = null;
+    } else {
+      n = leerNumero("prop-n");
+      exitos = leerNumero("prop-x");
+      proporcion = leerNumero("prop-phat");
+    }
+    const r = intervaloProporcion(n, exitos, proporcion, confianza);
+    if (r.error) return r;
+    const errorDeseado = leerNumero("prop-error");
+    const tamano = errorDeseado === null ? null : tamanoMuestraProporcion(r.p, errorDeseado, confianza);
+    return presentarProporcion(r, n, exitos, confianza, tamano, errorDeseado);
+  }
+
+  if (clave === "varianza") {
+    let n, s, s2;
+    if (valores) {
+      const d = calcularDescriptivos(valores);
+      n = d.n;
+      s = null;
+      s2 = d.varianza;
+    } else {
+      n = leerNumero("var-n");
+      s = leerNumero("var-s");
+      s2 = leerNumero("var-s2");
+    }
+    const r = intervaloVarianza(n, s, s2, confianza);
+    if (r.error) return r;
+    return presentarVarianza(r, n, s, confianza);
+  }
+
+  // Una media
+  let n, media, s;
+  if (valores) {
+    const d = calcularDescriptivos(valores);
+    n = d.n;
+    media = d.media;
+    s = d.desviacion;
+  } else {
+    n = leerNumero("media-n");
+    media = leerNumero("media-xbarra");
+    s = leerNumero("media-s");
+  }
+
+  if (clave === "media-t") {
+    const r = intervaloMediaT(n, media, s, confianza);
+    if (r.error) return r;
+    return presentarMediaT(r, n, media, s, confianza);
+  }
+
+  // Z: con σ conocida se usa σ; si no, s (el formulario lo permite solo con n ≥ 30).
+  const sigmaConocida = sigma === "conocida";
+  const desviacion = sigmaConocida ? leerNumero("media-sigma") : s;
+  const r = intervaloMediaZ(n, media, desviacion, sigmaConocida, confianza);
+  if (r.error) return r;
+  // El tamaño de muestra del formulario usa σ, así que solo se calcula con σ conocida.
+  const errorDeseado = sigmaConocida ? leerNumero("media-error") : null;
+  const tamano = errorDeseado === null ? null : tamanoMuestraMedia(desviacion, errorDeseado, confianza);
+  return presentarMediaZ(r, n, media, desviacion, sigmaConocida, confianza, tamano, errorDeseado);
+}
+
+function presentarMediaZ(r, n, media, desviacion, sigmaConocida, confianza, tamano, errorDeseado) {
+  const simbolo = sigmaConocida ? "σ" : "s";
+  return {
+    datos: [
+      ["Tamaño de muestra (n)", n],
+      ["Media muestral (x̄)", formatear(media)],
+      sigmaConocida
+        ? ["Desviación estándar poblacional (σ)", formatear(desviacion)]
+        : ["Desviación estándar muestral (s), en lugar de σ", formatear(desviacion)],
+    ].concat(filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("z_α/2 = z_" + formatearArea(r.alfa / 2), r.critico)],
+    pasos: [
+      ["Margen de error", "e = z_α/2 · " + simbolo + " / √n",
+        "e = " + formatear(r.critico.valor) + " · " + formatear(desviacion) + " / √" + n + " = " + formatear(r.margen)],
+    ].concat(pasosLimites("x̄", media, r)),
+    resultado: formatear(r.inferior) + " ≤ μ ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la media poblacional", "μ", r),
+    notas: sigmaConocida ? [] :
+      ["σ no se conoce, pero como n ≥ 30 el formulario usa Z; en la fórmula se usa s en lugar de σ."],
+    advertencias: [],
+    tamano: presentarTamanoMedia(tamano, desviacion, errorDeseado),
+  };
+}
+
+function presentarMediaT(r, n, media, s, confianza) {
+  return {
+    datos: [
+      ["Tamaño de muestra (n)", n],
+      ["Media muestral (x̄)", formatear(media)],
+      ["Desviación estándar muestral (s)", formatear(s)],
+    ].concat(filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("t_α/2,ν = t_" + formatearArea(r.alfa / 2) + "," + r.gl, r.critico)],
+    pasos: [
+      ["Grados de libertad", "ν = n − 1", "ν = " + n + " − 1 = " + r.gl],
+      ["Margen de error", "e = t_α/2,ν · s / √n",
+        "e = " + formatear(r.critico.valor) + " · " + formatear(s) + " / √" + n + " = " + formatear(r.margen)],
+    ].concat(pasosLimites("x̄", media, r)),
+    resultado: formatear(r.inferior) + " ≤ μ ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la media poblacional", "μ", r),
+    notas: ["La distribución t supone que la población de la que viene la muestra es aproximadamente normal."],
+    advertencias: [],
+    tamano: null,
+  };
+}
+
+function presentarProporcion(r, n, exitos, confianza, tamano, errorDeseado) {
+  const datos = [["Tamaño de muestra (n)", n]];
+  const pasos = [];
+  if (exitos !== null) {
+    datos.push(["Número de éxitos (x)", exitos]);
+    pasos.push(["Proporción muestral", "p = x / n", "p = " + exitos + " / " + n + " = " + formatear(r.p)]);
+  } else {
+    datos.push(["Proporción muestral (p)", formatear(r.p)]);
+  }
+  datos.push(["n · p", formatear(n * r.p)], ["n · q", formatear(n * r.q)]);
+  pasos.push(
+    ["q", "q = 1 − p", "q = 1 − " + formatear(r.p) + " = " + formatear(r.q)],
+    ["Margen de error", "e = z_α/2 · √(p · q / n)",
+      "e = " + formatear(r.critico.valor) + " · √(" + formatear(r.p) + " · " + formatear(r.q) + " / " + n + ") = " +
+        formatear(r.margen)]
+  );
+  return {
+    datos: datos.concat(filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("z_α/2 = z_" + formatearArea(r.alfa / 2), r.critico)],
+    pasos: pasos.concat(pasosLimites("p", r.p, r)),
+    resultado: formatear(r.inferior) + " ≤ π ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la proporción poblacional", "π", r),
+    notas: [],
+    advertencias: r.advertencias,
+    tamano: presentarTamanoProporcion(tamano, r.p, r.q, errorDeseado),
+  };
+}
+
+function presentarVarianza(r, n, s, confianza) {
+  const datos = [["Tamaño de muestra (n)", n]];
+  if (s !== null) datos.push(["Desviación estándar muestral (s)", formatear(s)]);
+  datos.push(["Varianza muestral (S²)", formatear(r.varianza)]);
+  return {
+    datos: datos.concat(filasNivel(confianza, r.alfa), [["1 − α/2", formatearArea(1 - r.alfa / 2)]]),
+    criticos: [
+      filaCritico("χ²_α/2,ν = χ²_" + formatearArea(r.alfa / 2) + "," + r.gl, r.chiDerecha),
+      filaCritico("χ²_1−α/2,ν = χ²_" + formatearArea(1 - r.alfa / 2) + "," + r.gl, r.chiIzquierda),
+    ],
+    pasos: [
+      ["Grados de libertad", "ν = n − 1", "ν = " + n + " − 1 = " + r.gl],
+      ["Numerador", "(n − 1) · S²", r.gl + " · " + formatear(r.varianza) + " = " + formatear(r.numerador)],
+      ["Límite inferior", "(n − 1) · S² / χ²_α/2,ν",
+        formatear(r.numerador) + " / " + formatear(r.chiDerecha.valor) + " = " + formatear(r.inferior)],
+      ["Límite superior", "(n − 1) · S² / χ²_1−α/2,ν",
+        formatear(r.numerador) + " / " + formatear(r.chiIzquierda.valor) + " = " + formatear(r.superior)],
+    ],
+    resultado: formatear(r.inferior) + " ≤ σ² ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la varianza poblacional", "σ²", r),
+    notas: [
+      "Este intervalo no es simétrico alrededor de S², por eso el formulario no usa un margen de error e: " +
+        "cada límite se calcula con su propio valor de chi-cuadrada.",
+      "La distribución chi-cuadrada supone que la población es normal.",
+    ],
+    advertencias: [],
+    tamano: null,
+  };
+}
+
+// Tamaño de muestra: null si no se pidió (sin error deseado), { error } si no se
+// pudo calcular, o los pasos y la conclusión.
+function presentarTamanoMedia(tamano, sigma, errorDeseado) {
+  if (tamano === null || tamano.error) return tamano;
+  return presentarTamano(tamano, "n = (z_α/2 · σ / e)²",
+    "n = (" + formatear(tamano.critico.valor) + " · " + formatear(sigma) + " / " + formatear(errorDeseado) + ")²");
+}
+
+function presentarTamanoProporcion(tamano, p, q, errorDeseado) {
+  if (tamano === null || tamano.error) return tamano;
+  return presentarTamano(tamano, "n = z_α/2² · p · q / e²",
+    "n = " + formatear(tamano.critico.valor) + "² · " + formatear(p) + " · " + formatear(q) + " / " +
+      formatear(errorDeseado) + "²");
+}
+
+function presentarTamano(tamano, formula, sustitucion) {
+  return {
+    pasos: [["Tamaño de muestra", formula, sustitucion + " = " + formatear(tamano.valor)]],
+    conclusion: "Como n debe ser entero, se redondea hacia arriba: se necesitan al menos " + tamano.n +
+      " observaciones para que el error no pase de e.",
+  };
+}
+
+// Filas comunes: nivel de confianza, α y α/2.
+function filasNivel(confianza, alfa) {
+  return [
+    ["Nivel de confianza", confianza + " %"],
+    ["α = 1 − confianza", formatearArea(alfa)],
+    ["α/2", formatearArea(alfa / 2)],
+  ];
+}
+
+// Fila de la tabla de valores críticos: [símbolo, valor, cómo se obtuvo].
+function filaCritico(simbolo, critico) {
+  return [simbolo, formatear(critico.valor), critico.descripcion];
+}
+
+// Límites de un intervalo simétrico: centro − e y centro + e.
+function pasosLimites(simbolo, centro, r) {
+  return [
+    ["Límite inferior", simbolo + " − e", formatear(centro) + " − " + formatear(r.margen) + " = " + formatear(r.inferior)],
+    ["Límite superior", simbolo + " + e", formatear(centro) + " + " + formatear(r.margen) + " = " + formatear(r.superior)],
+  ];
+}
+
+// Interpretación: el nivel de confianza se refiere al método, no a este intervalo.
+function interpretar(confianza, nombre, simbolo, r) {
+  return "Con un nivel de confianza del " + confianza + " %, se estima que " + nombre + " " + simbolo +
+    " está entre " + formatear(r.inferior) + " y " + formatear(r.superior) + ". El " + confianza +
+    " % se refiere al método: si se tomaran muchas muestras y con cada una se calculara un intervalo así, " +
+    "alrededor del " + confianza + " % de esos intervalos contendría el valor real de " + simbolo + ". " +
+    "No significa que haya un " + confianza + " % de probabilidad de que " + simbolo +
+    " (que es un valor fijo) esté en este intervalo en particular.";
+}
+
+// Muestra el procedimiento completo del intervalo.
+function mostrarIntervalo(p) {
+  const c = contenidoIntervalo;
+  agregarElemento("h3", "Datos", c);
+  agregarTabla(["Dato", "Valor"], p.datos, c);
+  agregarElemento("h3", "Valor crítico", c);
+  agregarTabla(["Valor", "Resultado", "Cómo se obtuvo"], p.criticos, c);
+  agregarElemento("h3", "Procedimiento", c);
+  agregarTabla(["Paso", "Fórmula", "Sustitución"], p.pasos, c);
+
+  agregarElemento("h3", "Resultado", c);
+  agregarElemento("p", p.resultado, c).className = "resultado-intervalo";
+  agregarElemento("p", p.interpretacion, c);
+  for (const aviso of p.advertencias) {
+    agregarElemento("p", "Atención: " + aviso, c).className = "aviso";
+  }
+  for (const nota of p.notas) {
+    agregarElemento("p", "Nota: " + nota, c).className = "ayuda";
+  }
+
+  if (p.tamano !== null) {
+    agregarElemento("h3", "Tamaño de muestra", c);
+    if (p.tamano.error) {
+      agregarElemento("p", "No se pudo calcular el tamaño de muestra: " + p.tamano.error, c).className = "aviso";
+    } else {
+      agregarTabla(["Paso", "Fórmula", "Sustitución"], p.tamano.pasos, c);
+      agregarElemento("p", p.tamano.conclusion, c);
+    }
+  }
+
+  agregarElemento("p", "Los valores se muestran redondeados a 4 decimales; " +
+    "los cálculos internos usan todos los decimales.", c).className = "ayuda";
+  tarjetaIntervalo.hidden = false;
+}
+
+// α y α/2 se muestran con hasta 10 cifras significativas para quitar el ruido
+// de la resta (por ejemplo 0.025000000000000022 -> 0.025) sin perder valores
+// pequeños como 0.00005, que con 4 decimales se vería como 0.0001.
+function formatearArea(numero) {
+  return String(Number(numero.toPrecision(10)));
 }
 
 // Redondea a 4 decimales solo para mostrar (quita ceros sobrantes: 1.2000 -> 1.2).

@@ -3,12 +3,13 @@
 // Estas funciones no usan la página (document), así que también se pueden probar
 // con Node: ver tests/metodos.test.js.
 //
-// Reglas (según los casos del formulario descritos en el plan del proyecto):
+// Reglas (según el formulario de intervalos de confianza):
 //
 //   Caso                σ          Tamaño          Varianzas    Método
 //   ------------------  ---------  --------------  -----------  ---------------------------
-//   Una media           conocida   n ≥ 30          —            Z
-//   Una media           desconoc.  n < 30          —            t, gl = n − 1
+//   Una media           conocida   cualquiera      —            Z        ("n ≥ 30 o σ² conocida")
+//   Una media           desconoc.  n ≥ 30          —            Z con s  ("n ≥ 30 o σ² conocida")
+//   Una media           desconoc.  n < 30          —            t, gl = n − 1  ("n < 30 y σ² desconocida")
 //   Dos medias          conocidas  cualquiera      —            Z
 //   Dos medias          desconoc.  ambas ≥ 30      iguales      Z (con s₁ y s₂)
 //   Dos medias          desconoc.  ambas < 30      iguales      t con varianza combinada, gl = n₁ + n₂ − 2
@@ -18,8 +19,9 @@
 //   Cociente de varianzas                                       F, gl = n₁ − 1 y n₂ − 1
 //   Muestras pareadas                                           t, gl = n − 1 (n = número de pares)
 //
-// Cualquier otra combinación (por ejemplo, una media con σ desconocida y n ≥ 30)
-// coincide con ninguna o con más de una fila: no se elige un método por defecto.
+// Cualquier otra combinación (por ejemplo, dos medias con varianzas diferentes y
+// ambas muestras grandes) coincide con ninguna o con más de una fila: no se elige
+// un método por defecto.
 
 // A partir de este tamaño la muestra se considera grande.
 const TAMANO_MUESTRA_GRANDE = 30;
@@ -31,7 +33,8 @@ const TAMANO_MUESTRA_GRANDE = 30;
 //   varianzas: "iguales", "diferentes" o "" (solo dos medias con σ desconocidas)
 //   tamanos:   [n] o [n₁, n₂]; null si el usuario no lo escribió
 // Devuelve uno de estos objetos:
-//   { estado: "identificado", metodo, distribucion, gradosLibertad, explicacion }
+//   { estado: "identificado", clave, metodo, distribucion, gradosLibertad, explicacion }
+//     (clave identifica la fórmula: "media-z", "media-t", "proporcion", "varianza", ...)
 //   { estado: "falta-dato", mensaje }     falta un dato o no es válido
 //   { estado: "no-determinado", mensaje } la combinación no tiene un método seguro
 function identificarMetodo(datos) {
@@ -48,22 +51,22 @@ function identificarMetodo(datos) {
     case "dos-medias":
       return metodoDosMedias(datos);
     case "una-proporcion":
-      return identificado(datos.tipo, "una proporción (p)", "normal estándar Z", null,
+      return identificado("proporcion", datos.tipo, "una proporción (p)", "normal estándar Z", null,
         "Para una proporción el formulario usa la aproximación normal (Z) de la proporción muestral p̂.");
     case "dos-proporciones":
-      return identificado(datos.tipo, "la diferencia de dos proporciones (p₁ − p₂)", "normal estándar Z", null,
+      return identificado("dos-proporciones", datos.tipo, "la diferencia de dos proporciones (p₁ − p₂)", "normal estándar Z", null,
         "Para dos proporciones de muestras independientes el formulario usa la aproximación normal (Z).");
     case "una-varianza":
-      return identificado(datos.tipo, "una varianza (σ²)", "chi-cuadrada", textoGL("n − 1", n - 1),
+      return identificado("varianza", datos.tipo, "una varianza (σ²)", "chi-cuadrada", textoGL("n − 1", n - 1),
         "Para una varianza el formulario usa la distribución chi-cuadrada con n − 1 grados de libertad " +
         "(supone que la población es normal).");
     case "cociente-varianzas":
-      return identificado(datos.tipo, "el cociente de varianzas (σ₁² / σ₂²)", "F",
+      return identificado("cociente-varianzas", datos.tipo, "el cociente de varianzas (σ₁² / σ₂²)", "F",
         textoGL("n₁ − 1", tamanos[0] - 1) + " (numerador) y " + textoGL("n₂ − 1", tamanos[1] - 1) + " (denominador)",
         "Para comparar dos varianzas el formulario usa la distribución F con n₁ − 1 y n₂ − 1 grados de libertad " +
         "(supone poblaciones normales y muestras independientes).");
     case "pareadas":
-      return identificado(datos.tipo, "la media de las diferencias pareadas (μ_d)", "t de Student", textoGL("n − 1", n - 1),
+      return identificado("pareadas", datos.tipo, "la media de las diferencias pareadas (μ_d)", "t de Student", textoGL("n − 1", n - 1),
         "Las observaciones están relacionadas por pares, así que se trabaja con las diferencias d como una sola " +
         "muestra y se usa t con n − 1 grados de libertad (n = número de pares).");
     case "":
@@ -75,45 +78,41 @@ function identificarMetodo(datos) {
 }
 
 // Una media: deciden σ (conocida o no) y el tamaño de la muestra.
+// Formulario: Z si "n ≥ 30 o σ² conocida"; t si "n < 30 y σ² desconocida".
 function metodoUnaMedia(datos) {
   if (datos.sigma !== "conocida" && datos.sigma !== "desconocida") {
     return faltaDato("Indica si el enunciado da la desviación estándar poblacional σ (paso 4). " +
-      "Se necesita porque con σ conocida se usa Z y con σ desconocida se usa t. " +
+      "Se necesita porque con σ conocida se usa Z y con σ desconocida el método depende de n. " +
       "Una desviación calculada con los datos de la muestra (s) no es σ.");
   }
 
+  if (datos.sigma === "conocida") {
+    return identificado("media-z", datos.tipo, "una media (μ) con σ conocida", "normal estándar Z", null,
+      "σ es conocida; el formulario usa Z cuando n ≥ 30 o σ² es conocida.");
+  }
+
+  // σ desconocida: el tamaño de la muestra decide entre Z y t.
   const n = (datos.tamanos || [])[0];
   const problema = revisarTamano(n, "la muestra (n)");
   if (problema) {
-    return faltaDato(problema + " Se necesita para saber si la muestra es grande (n ≥ " +
-      TAMANO_MUESTRA_GRANDE + ") o pequeña, lo que decide entre Z y t.");
+    return faltaDato(problema + " Con σ desconocida se necesita para saber si n ≥ " + TAMANO_MUESTRA_GRANDE +
+      " (se usa Z) o n < " + TAMANO_MUESTRA_GRANDE + " (se usa t).");
   }
-  const grande = n >= TAMANO_MUESTRA_GRANDE;
-
-  if (datos.sigma === "conocida" && grande) {
-    return identificado(datos.tipo, "una media (μ) con σ conocida", "normal estándar Z", null,
-      "σ es conocida y la muestra es grande (n = " + n + " ≥ " + TAMANO_MUESTRA_GRANDE + ").");
+  if (n < 2) {
+    return noDeterminado("Con σ desconocida hay que estimarla con la desviación muestral s, " +
+      "pero con n = 1 no se puede calcular s (n − 1 = 0).");
   }
 
-  if (datos.sigma === "desconocida" && !grande) {
-    if (n < 2) {
-      return noDeterminado("Con σ desconocida hay que estimarla con la desviación muestral s, " +
-        "pero con n = 1 no se puede calcular s (n − 1 = 0).");
-    }
-    return identificado(datos.tipo, "una media (μ) con σ desconocida", "t de Student", textoGL("n − 1", n - 1),
-      "σ es desconocida (se estima con s) y la muestra es pequeña (n = " + n + " < " + TAMANO_MUESTRA_GRANDE + ").");
+  if (n >= TAMANO_MUESTRA_GRANDE) {
+    return identificado("media-z", datos.tipo, "una media (μ) con n ≥ " + TAMANO_MUESTRA_GRANDE + " y σ desconocida",
+      "normal estándar Z", null,
+      "σ es desconocida, pero la muestra es grande (n = " + n + " ≥ " + TAMANO_MUESTRA_GRANDE + "); " +
+      "el formulario usa Z cuando n ≥ 30 o σ² es conocida. Como σ no se conoce, se estima con la desviación muestral s.");
   }
-
-  if (datos.sigma === "conocida") {
-    return noDeterminado("σ es conocida pero la muestra es pequeña (n = " + n + " < " + TAMANO_MUESTRA_GRANDE + "). " +
-      "El formulario usa Z con muestra grande y σ conocida; usar Z con una muestra pequeña requiere que la " +
-      "población sea normal, y eso no se ha indicado. Confirma con tu profesor qué método corresponde.");
-  }
-
-  return noDeterminado("σ es desconocida pero la muestra es grande (n = " + n + " ≥ " + TAMANO_MUESTRA_GRANDE + "). " +
-    "El formulario contempla Z con muestra grande y σ conocida, y t con muestra pequeña y σ desconocida; " +
-    "este caso no coincide con ninguno. Algunos cursos usan Z con s en lugar de σ y otros usan t con n − 1 " +
-    "grados de libertad. Confirma con tu profesor cuál se usa.");
+  return identificado("media-t", datos.tipo, "una media (μ) con n < " + TAMANO_MUESTRA_GRANDE + " y σ desconocida",
+    "t de Student", textoGL("n − 1", n - 1),
+    "σ es desconocida (se estima con s) y la muestra es pequeña (n = " + n + " < " + TAMANO_MUESTRA_GRANDE + "); " +
+    "el formulario usa t cuando n < 30 y σ² es desconocida.");
 }
 
 // Dos medias de muestras independientes: deciden σ₁ y σ₂, el tamaño de las
@@ -126,7 +125,7 @@ function metodoDosMedias(datos) {
   }
 
   if (datos.sigma === "conocida") {
-    return identificado(datos.tipo, "la diferencia de dos medias (μ₁ − μ₂) con σ₁ y σ₂ conocidas",
+    return identificado("dos-medias-z", datos.tipo, "la diferencia de dos medias (μ₁ − μ₂) con σ₁ y σ₂ conocidas",
       "normal estándar Z", null,
       "σ₁ y σ₂ son conocidas; el formulario usa Z para dos medias con desviaciones poblacionales conocidas.");
   }
@@ -155,13 +154,13 @@ function metodoDosMedias(datos) {
 
   if (datos.varianzas === "iguales") {
     if (grandes) {
-      return identificado(datos.tipo, "la diferencia de dos medias (μ₁ − μ₂) con muestras grandes",
+      return identificado("dos-medias-z", datos.tipo, "la diferencia de dos medias (μ₁ − μ₂) con muestras grandes",
         "normal estándar Z", null,
         "Las dos muestras son grandes (" + textoTamanos + ", ambas ≥ " + TAMANO_MUESTRA_GRANDE + "); " +
         "el formulario usa Z para dos medias con muestras grandes, con s₁ y s₂ en lugar de σ₁ y σ₂.");
     }
     if (pequenas) {
-      return identificado(datos.tipo,
+      return identificado("dos-medias-t-iguales", datos.tipo,
         "la diferencia de dos medias (μ₁ − μ₂) con varianzas desconocidas e iguales",
         "t de Student", textoGL("n₁ + n₂ − 2", n1 + n2 - 2),
         "σ₁ y σ₂ son desconocidas, el enunciado supone varianzas iguales y las muestras son pequeñas (" +
@@ -178,7 +177,7 @@ function metodoDosMedias(datos) {
       "diferentes: coinciden dos métodos del formulario, Z para muestras grandes y t con varianzas diferentes " +
       "(gl de Welch). Confirma con tu profesor cuál se usa.");
   }
-  return identificado(datos.tipo,
+  return identificado("dos-medias-t-diferentes", datos.tipo,
     "la diferencia de dos medias (μ₁ − μ₂) con varianzas desconocidas y diferentes",
     "t de Student", "fórmula de Welch (se calcula con s₁, s₂, n₁ y n₂; puede no ser entero)",
     "σ₁ y σ₂ son desconocidas y el enunciado supone varianzas diferentes (" + textoTamanos + "); " +
@@ -203,10 +202,12 @@ function textoGL(formula, valor) {
   return Number.isInteger(valor) && valor >= 1 ? formula + " = " + valor : formula;
 }
 
-function identificado(tipo, parametro, distribucion, gradosLibertad, explicacion) {
+function identificado(clave, tipo, parametro, distribucion, gradosLibertad, explicacion) {
   const inicio = tipo === "intervalo" ? "Intervalo de confianza para " : "Prueba de hipótesis para ";
   return {
     estado: "identificado",
+    clave: clave, // indica qué fórmula aplicar
+
     metodo: inicio + parametro,
     distribucion: distribucion,
     gradosLibertad: gradosLibertad, // null si la distribución no usa grados de libertad

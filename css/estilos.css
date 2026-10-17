@@ -199,6 +199,35 @@ textarea[aria-invalid="true"] {
   color: #b00020;
 }
 
+/* ---------- Intervalo de confianza (Parte 6) ---------- */
+
+#intervalo {
+  margin-top: 16px;
+}
+
+#intervalo h3 {
+  margin: 20px 0 4px;
+}
+
+#intervalo h3:first-child {
+  margin-top: 0;
+}
+
+/* Las sustituciones largas se parten en varias líneas */
+#intervalo td {
+  overflow-wrap: anywhere;
+}
+
+.resultado-intervalo {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+/* Advertencias sobre los supuestos o el resultado */
+#intervalo .aviso {
+  color: #b00020;
+}
+
 #resultados h3 {
   margin: 20px 0 4px;
 }
