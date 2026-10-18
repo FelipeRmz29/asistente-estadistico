@@ -6,7 +6,9 @@
 //          (las reglas están en js/metodos.js).
 // Parte 6: calcula y muestra los intervalos de confianza de una muestra
 //          (las fórmulas están en js/intervalos.js).
-// Todavía no se resuelven intervalos de dos muestras ni pruebas de hipótesis.
+// Parte 7: calcula y muestra los intervalos de confianza de dos muestras
+//          (las fórmulas están en js/intervalos.js).
+// Todavía no se resuelven pruebas de hipótesis.
 
 const formulario = document.getElementById("formulario-ejercicio");
 const avisoDatos = document.getElementById("aviso-datos");
@@ -199,9 +201,13 @@ function revisarDatos(evento) {
     return;
   }
 
-  // Intervalos de una muestra (Parte 6). Los demás casos se resolverán en otras partes.
-  if (seleccion.tipo === "intervalo" && INTERVALOS_UNA_MUESTRA.includes(metodo.clave)) {
-    const presentacion = calcularIntervaloUnaMuestra(metodo.clave, seleccion.sigma, muestras, confianza);
+  // Intervalos de una muestra (Parte 6) y de dos muestras (Parte 7).
+  const esUnaMuestra = INTERVALOS_UNA_MUESTRA.includes(metodo.clave);
+  const esDosMuestras = INTERVALOS_DOS_MUESTRAS.includes(metodo.clave);
+  if (seleccion.tipo === "intervalo" && (esUnaMuestra || esDosMuestras)) {
+    const presentacion = esUnaMuestra
+      ? calcularIntervaloUnaMuestra(metodo.clave, seleccion.sigma, muestras, confianza)
+      : calcularIntervaloDosMuestras(metodo.clave, seleccion.sigma, muestras, confianza);
     if (presentacion.error) {
       mostrarMensaje("No se pudo calcular el intervalo: " + presentacion.error, true);
       return;
@@ -490,8 +496,10 @@ function presentarProporcion(r, n, exitos, confianza, tamano, errorDeseado) {
 
 function presentarVarianza(r, n, s, confianza) {
   const datos = [["Tamaño de muestra (n)", n]];
-  if (s !== null) datos.push(["Desviación estándar muestral (s)", formatear(s)]);
-  datos.push(["Varianza muestral (S²)", formatear(r.varianza)]);
+  if (s !== null) datos.push(["Desviación estándar muestral (s)", formatearLimite(s)]);
+  datos.push(["Varianza muestral (S²)", formatearLimite(r.varianza)]);
+  // formatearLimite (js/intervalos.js) conserva cifras en valores pequeños; solo cambia lo que se ve.
+  const fl = formatearLimite;
   return {
     datos: datos.concat(filasNivel(confianza, r.alfa), [["1 − α/2", formatearArea(1 - r.alfa / 2)]]),
     criticos: [
@@ -500,15 +508,23 @@ function presentarVarianza(r, n, s, confianza) {
     ],
     pasos: [
       ["Grados de libertad", "ν = n − 1", "ν = " + n + " − 1 = " + r.gl],
-      ["Numerador", "(n − 1) · S²", r.gl + " · " + formatear(r.varianza) + " = " + formatear(r.numerador)],
-      ["Límite inferior", "(n − 1) · S² / χ²_α/2,ν",
-        formatear(r.numerador) + " / " + formatear(r.chiDerecha.valor) + " = " + formatear(r.inferior)],
-      ["Límite superior", "(n − 1) · S² / χ²_1−α/2,ν",
-        formatear(r.numerador) + " / " + formatear(r.chiIzquierda.valor) + " = " + formatear(r.superior)],
+      ["Numerador", "(n − 1) · S²", r.gl + " · " + fl(r.varianza) + " = " + fl(r.numerador)],
+      ["Límite inferior de σ²", "(n − 1) · S² / χ²_α/2,ν",
+        fl(r.numerador) + " / " + formatear(r.chiDerecha.valor) + " = " + fl(r.inferior)],
+      ["Límite superior de σ²", "(n − 1) · S² / χ²_1−α/2,ν",
+        fl(r.numerador) + " / " + formatear(r.chiIzquierda.valor) + " = " + fl(r.superior)],
+      ["Límite inferior de σ", "√(límite inferior de σ²)", "√" + fl(r.inferior) + " = " + fl(r.sigmaInferior)],
+      ["Límite superior de σ", "√(límite superior de σ²)", "√" + fl(r.superior) + " = " + fl(r.sigmaSuperior)],
     ],
-    resultado: formatear(r.inferior) + " ≤ σ² ≤ " + formatear(r.superior),
-    interpretacion: interpretar(confianza, "la varianza poblacional", "σ²", r),
+    resultado: [
+      "Varianza: " + fl(r.inferior) + " ≤ σ² ≤ " + fl(r.superior),
+      "Desviación estándar: " + fl(r.sigmaInferior) + " ≤ σ ≤ " + fl(r.sigmaSuperior),
+    ],
+    interpretacion: interpretar(confianza, "la varianza poblacional", "σ²", r, fl) +
+      " Tomando la raíz cuadrada de los límites, la desviación estándar poblacional σ está entre " +
+      fl(r.sigmaInferior) + " y " + fl(r.sigmaSuperior) + ".",
     notas: [
+      "Los límites de σ son la raíz cuadrada de los límites de σ² sin redondear, no de los valores que se ven aquí.",
       "Este intervalo no es simétrico alrededor de S², por eso el formulario no usa un margen de error e: " +
         "cada límite se calcula con su propio valor de chi-cuadrada.",
       "La distribución chi-cuadrada supone que la población es normal.",
@@ -564,13 +580,331 @@ function pasosLimites(simbolo, centro, r) {
 }
 
 // Interpretación: el nivel de confianza se refiere al método, no a este intervalo.
-function interpretar(confianza, nombre, simbolo, r) {
+// formato es la función que escribe los límites (formatear, salvo que se indique otra).
+function interpretar(confianza, nombre, simbolo, r, formato = formatear) {
   return "Con un nivel de confianza del " + confianza + " %, se estima que " + nombre + " " + simbolo +
-    " está entre " + formatear(r.inferior) + " y " + formatear(r.superior) + ". El " + confianza +
+    " está entre " + formato(r.inferior) + " y " + formato(r.superior) + ". El " + confianza +
     " % se refiere al método: si se tomaran muchas muestras y con cada una se calculara un intervalo así, " +
     "alrededor del " + confianza + " % de esos intervalos contendría el valor real de " + simbolo + ". " +
     "No significa que haya un " + confianza + " % de probabilidad de que " + simbolo +
     " (que es un valor fijo) esté en este intervalo en particular.";
+}
+
+// ---------- Intervalos de confianza de dos muestras (Parte 7) ----------
+
+// Métodos (claves de js/metodos.js) de dos muestras cuyo intervalo ya se calcula.
+const INTERVALOS_DOS_MUESTRAS = [
+  "dos-medias-z", "dos-medias-t-iguales", "dos-medias-t-diferentes",
+  "dos-proporciones", "cociente-varianzas", "pareadas",
+];
+
+// Igual que calcularIntervaloUnaMuestra, pero con dos listas o dos juegos de campos.
+// muestras: las listas leídas ([{ nombre, valores }, ...]) o null en estadísticas resumidas.
+// Devuelve { error } si un dato falta o no es válido.
+function calcularIntervaloDosMuestras(clave, sigma, muestras, confianza) {
+  const listas = muestras === null ? null : [muestras[0].valores, muestras[1].valores];
+
+  if (clave === "dos-proporciones") {
+    let n1, exitos1, prop1, n2, exitos2, prop2;
+    if (listas) {
+      const a = calcularProporcion(listas[0]);
+      const b = calcularProporcion(listas[1]);
+      n1 = a.n; exitos1 = a.exitos; prop1 = null;
+      n2 = b.n; exitos2 = b.exitos; prop2 = null;
+    } else {
+      n1 = leerNumero("dp1-n"); exitos1 = leerNumero("dp1-x"); prop1 = leerNumero("dp1-phat");
+      n2 = leerNumero("dp2-n"); exitos2 = leerNumero("dp2-x"); prop2 = leerNumero("dp2-phat");
+    }
+    const r = intervaloDosProporciones(n1, exitos1, prop1, n2, exitos2, prop2, confianza);
+    if (r.error) return r;
+    return presentarDosProporciones(r, n1, exitos1, n2, exitos2, confianza);
+  }
+
+  if (clave === "cociente-varianzas") {
+    let n1, s1, varianza1, n2, s2, varianza2;
+    if (listas) {
+      const a = calcularDescriptivos(listas[0]);
+      const b = calcularDescriptivos(listas[1]);
+      n1 = a.n; s1 = null; varianza1 = a.varianza;
+      n2 = b.n; s2 = null; varianza2 = b.varianza;
+    } else {
+      n1 = leerNumero("cv1-n"); s1 = leerNumero("cv1-s"); varianza1 = leerNumero("cv1-s2");
+      n2 = leerNumero("cv2-n"); s2 = leerNumero("cv2-s"); varianza2 = leerNumero("cv2-s2");
+    }
+    const r = intervaloCocienteVarianzas(n1, s1, varianza1, n2, s2, varianza2, confianza);
+    if (r.error) return r;
+    return presentarCocienteVarianzas(r, n1, s1, n2, s2, confianza);
+  }
+
+  if (clave === "pareadas") {
+    // Se calculan las diferencias d = muestra 1 − muestra 2 y se trabaja con ellas como una muestra.
+    let n, mediaD, desvD;
+    if (listas) {
+      const d = calcularDescriptivos(calcularDiferencias(listas[0], listas[1]).diferencias);
+      n = d.n; mediaD = d.media; desvD = d.desviacion;
+    } else {
+      n = leerNumero("par-n"); mediaD = leerNumero("par-dbarra"); desvD = leerNumero("par-sd");
+    }
+    const r = intervaloPareadas(n, mediaD, desvD, confianza);
+    if (r.error) return r;
+    return presentarPareadas(r, n, mediaD, desvD, confianza);
+  }
+
+  // Dos medias (muestras independientes)
+  let n1, media1, s1, n2, media2, s2;
+  if (listas) {
+    const a = calcularDescriptivos(listas[0]);
+    const b = calcularDescriptivos(listas[1]);
+    n1 = a.n; media1 = a.media; s1 = a.desviacion;
+    n2 = b.n; media2 = b.media; s2 = b.desviacion;
+  } else {
+    n1 = leerNumero("dm1-n"); media1 = leerNumero("dm1-xbarra");
+    n2 = leerNumero("dm2-n"); media2 = leerNumero("dm2-xbarra");
+    // Los campos s₁ y s₂ solo existen cuando σ es desconocida.
+    s1 = sigma === "desconocida" ? leerNumero("dm1-s") : null;
+    s2 = sigma === "desconocida" ? leerNumero("dm2-s") : null;
+  }
+
+  if (clave === "dos-medias-t-iguales") {
+    const r = intervaloDosMediasTIguales(n1, media1, s1, n2, media2, s2, confianza);
+    if (r.error) return r;
+    return presentarDosMediasTIguales(r, n1, media1, s1, n2, media2, s2, confianza);
+  }
+  if (clave === "dos-medias-t-diferentes") {
+    const r = intervaloDosMediasTDiferentes(n1, media1, s1, n2, media2, s2, confianza);
+    if (r.error) return r;
+    return presentarDosMediasTDiferentes(r, n1, media1, s1, n2, media2, s2, confianza);
+  }
+
+  // Z: con σ conocidas se usan σ₁ y σ₂ (campos del formulario); si no, s₁ y s₂ (solo con n ≥ 30).
+  const sigmaConocida = sigma === "conocida";
+  const desv1 = sigmaConocida ? leerNumero("dm1-sigma") : s1;
+  const desv2 = sigmaConocida ? leerNumero("dm2-sigma") : s2;
+  const r = intervaloDosMediasZ(n1, media1, desv1, n2, media2, desv2, sigmaConocida, confianza);
+  if (r.error) return r;
+  return presentarDosMediasZ(r, n1, media1, desv1, n2, media2, desv2, sigmaConocida, confianza);
+}
+
+const NOTA_INDEPENDIENTES = "Las muestras se tratan como independientes (ningún dato de la muestra 1 está " +
+  "emparejado con uno de la muestra 2). Si cada dato de una muestra corresponde a uno de la otra " +
+  "(por ejemplo, antes y después en los mismos sujetos), elige «Muestras pareadas».";
+
+// Filas de datos de una de las dos muestras. desvNombre y desv pueden ser null.
+function filasMuestra(numero, n, media, desvNombre, desv) {
+  const sub = numero === 1 ? "₁" : "₂";
+  const filas = [
+    ["Tamaño de la muestra " + numero + " (n" + sub + ")", n],
+    ["Media de la muestra " + numero + " (x̄" + sub + ")", formatear(media)],
+  ];
+  if (desv !== null) filas.push([desvNombre + " " + numero, formatear(desv)]);
+  return filas;
+}
+
+function presentarDosMediasZ(r, n1, media1, desv1, n2, media2, desv2, sigmaConocida, confianza) {
+  const s = sigmaConocida ? "σ" : "s";
+  const nombre = sigmaConocida ? "Desviación estándar poblacional (σ" : "Desviación muestral (s";
+  return {
+    datos: filasMuestra(1, n1, media1, nombre + "₁) de la muestra", desv1)
+      .concat(filasMuestra(2, n2, media2, nombre + "₂) de la muestra", desv2), filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("z_α/2 = z_" + formatearArea(r.alfa / 2), r.critico)],
+    pasos: [
+      ["Diferencia de medias", "x̄₁ − x̄₂",
+        formatear(media1) + " − " + formatear(media2) + " = " + formatear(r.diferencia)],
+      ["Error estándar", "√(" + s + "₁² / n₁ + " + s + "₂² / n₂)",
+        "√(" + formatear(desv1) + "² / " + n1 + " + " + formatear(desv2) + "² / " + n2 + ") = " +
+          formatear(r.errorEstandar)],
+      ["Margen de error", "e = z_α/2 · √(" + s + "₁² / n₁ + " + s + "₂² / n₂)",
+        "e = " + formatear(r.critico.valor) + " · " + formatear(r.errorEstandar) + " = " + formatear(r.margen)],
+    ].concat(pasosLimites("(x̄₁ − x̄₂)", r.diferencia, r)),
+    resultado: formatear(r.inferior) + " ≤ μ₁ − μ₂ ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r) + " " +
+      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    notas: (sigmaConocida ? [] :
+      ["σ₁ y σ₂ no se conocen, pero como n₁ y n₂ son ≥ 30 el formulario usa Z; en la fórmula se usan s₁ y s₂ en lugar de σ₁ y σ₂."])
+      .concat([NOTA_INDEPENDIENTES]),
+    advertencias: [],
+    tamano: null,
+  };
+}
+
+function presentarDosMediasTIguales(r, n1, media1, s1, n2, media2, s2, confianza) {
+  return {
+    datos: filasMuestra(1, n1, media1, "Desviación muestral (s₁) de la muestra", s1)
+      .concat(filasMuestra(2, n2, media2, "Desviación muestral (s₂) de la muestra", s2), filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("t_α/2,ν = t_" + formatearArea(r.alfa / 2) + "," + r.gl, r.critico)],
+    pasos: [
+      ["Diferencia de medias", "x̄₁ − x̄₂",
+        formatear(media1) + " − " + formatear(media2) + " = " + formatear(r.diferencia)],
+      ["Grados de libertad", "ν = n₁ + n₂ − 2", "ν = " + n1 + " + " + n2 + " − 2 = " + r.gl],
+      ["Desviación combinada", "Sp = √(((n₁ − 1)s₁² + (n₂ − 1)s₂²) / (n₁ + n₂ − 2))",
+        "Sp = √((" + (n1 - 1) + " · " + formatear(s1) + "² + " + (n2 - 1) + " · " + formatear(s2) + "²) / " + r.gl +
+          ") = " + formatear(r.sp)],
+      ["Margen de error", "e = t_α/2,ν · Sp · √(1/n₁ + 1/n₂)",
+        "e = " + formatear(r.critico.valor) + " · " + formatear(r.sp) + " · √(1/" + n1 + " + 1/" + n2 + ") = " +
+          formatear(r.margen)],
+    ].concat(pasosLimites("(x̄₁ − x̄₂)", r.diferencia, r)),
+    resultado: formatear(r.inferior) + " ≤ μ₁ − μ₂ ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r) + " " +
+      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    notas: [
+      "Esta fórmula supone que las varianzas poblacionales son iguales (σ₁² = σ₂²), como indica el enunciado, " +
+        "y que las poblaciones son aproximadamente normales.",
+      NOTA_INDEPENDIENTES,
+    ],
+    advertencias: [],
+    tamano: null,
+  };
+}
+
+function presentarDosMediasTDiferentes(r, n1, media1, s1, n2, media2, s2, confianza) {
+  return {
+    datos: filasMuestra(1, n1, media1, "Desviación muestral (s₁) de la muestra", s1)
+      .concat(filasMuestra(2, n2, media2, "Desviación muestral (s₂) de la muestra", s2), filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("t_α/2,ν = t_" + formatearArea(r.alfa / 2) + ",ν", r.critico)],
+    pasos: [
+      ["Diferencia de medias", "x̄₁ − x̄₂",
+        formatear(media1) + " − " + formatear(media2) + " = " + formatear(r.diferencia)],
+      ["Varianza de x̄₁", "s₁² / n₁", formatear(s1) + "² / " + n1 + " = " + formatear(r.varMedia1)],
+      ["Varianza de x̄₂", "s₂² / n₂", formatear(s2) + "² / " + n2 + " = " + formatear(r.varMedia2)],
+      ["Grados de libertad (Welch)", "ν = (s₁²/n₁ + s₂²/n₂)² / [(s₁²/n₁)² / (n₁ − 1) + (s₂²/n₂)² / (n₂ − 1)]",
+        "ν = (" + formatear(r.varMedia1) + " + " + formatear(r.varMedia2) + ")² / [" + formatear(r.varMedia1) + "² / " +
+          (n1 - 1) + " + " + formatear(r.varMedia2) + "² / " + (n2 - 1) + "] = " + formatear(r.gl)],
+      ["Margen de error", "e = t_α/2,ν · √(s₁²/n₁ + s₂²/n₂)",
+        "e = " + formatear(r.critico.valor) + " · " + formatear(r.errorEstandar) + " = " + formatear(r.margen)],
+    ].concat(pasosLimites("(x̄₁ − x̄₂)", r.diferencia, r)),
+    resultado: formatear(r.inferior) + " ≤ μ₁ − μ₂ ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r) + " " +
+      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    notas: [
+      "Esta fórmula supone varianzas poblacionales diferentes y poblaciones aproximadamente normales. " +
+        "Los grados de libertad (Welch) no son un número entero y se usan con todos sus decimales; si tu profesor " +
+        "usa tablas y redondea ν, el valor crítico cambia un poco.",
+      NOTA_INDEPENDIENTES,
+    ],
+    advertencias: [],
+    tamano: null,
+  };
+}
+
+function presentarDosProporciones(r, n1, exitos1, n2, exitos2, confianza) {
+  const datos = [["Tamaño de la muestra 1 (n₁)", n1]];
+  const pasos = [];
+  if (exitos1 !== null) {
+    datos.push(["Éxitos en la muestra 1 (x₁)", exitos1]);
+    pasos.push(["Proporción 1", "p₁ = x₁ / n₁", "p₁ = " + exitos1 + " / " + n1 + " = " + formatear(r.p1)]);
+  } else {
+    datos.push(["Proporción de la muestra 1 (p₁)", formatear(r.p1)]);
+  }
+  datos.push(["Tamaño de la muestra 2 (n₂)", n2]);
+  if (exitos2 !== null) {
+    datos.push(["Éxitos en la muestra 2 (x₂)", exitos2]);
+    pasos.push(["Proporción 2", "p₂ = x₂ / n₂", "p₂ = " + exitos2 + " / " + n2 + " = " + formatear(r.p2)]);
+  } else {
+    datos.push(["Proporción de la muestra 2 (p₂)", formatear(r.p2)]);
+  }
+  datos.push(["n₁ · p₁ y n₁ · q₁", formatear(n1 * r.p1) + " y " + formatear(n1 * r.q1)],
+    ["n₂ · p₂ y n₂ · q₂", formatear(n2 * r.p2) + " y " + formatear(n2 * r.q2)]);
+
+  pasos.push(
+    ["q₁ y q₂", "q = 1 − p",
+      "q₁ = 1 − " + formatear(r.p1) + " = " + formatear(r.q1) + "; q₂ = 1 − " + formatear(r.p2) + " = " + formatear(r.q2)],
+    ["Diferencia de proporciones", "p₁ − p₂", formatear(r.p1) + " − " + formatear(r.p2) + " = " + formatear(r.diferencia)],
+    ["Margen de error", "e = z_α/2 · √(p₁q₁/n₁ + p₂q₂/n₂)",
+      "e = " + formatear(r.critico.valor) + " · √(" + formatear(r.p1) + " · " + formatear(r.q1) + " / " + n1 + " + " +
+        formatear(r.p2) + " · " + formatear(r.q2) + " / " + n2 + ") = " + formatear(r.margen)]
+  );
+  return {
+    datos: datos.concat(filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("z_α/2 = z_" + formatearArea(r.alfa / 2), r.critico)],
+    pasos: pasos.concat(pasosLimites("(p₁ − p₂)", r.diferencia, r)),
+    resultado: formatear(r.inferior) + " ≤ π₁ − π₂ ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la diferencia de proporciones poblacionales", "π₁ − π₂", r) + " " +
+      criterioFormulario(r, 0, "π₁", "π₂"),
+    notas: [NOTA_INDEPENDIENTES],
+    advertencias: r.advertencias,
+    tamano: null,
+  };
+}
+
+function presentarPareadas(r, n, mediaD, desvD, confianza) {
+  return {
+    datos: [
+      ["Número de pares (n)", n],
+      ["Media de las diferencias (d̄)", formatear(mediaD)],
+      ["Desviación estándar de las diferencias (s_d)", formatear(desvD)],
+    ].concat(filasNivel(confianza, r.alfa)),
+    criticos: [filaCritico("t_α/2,ν = t_" + formatearArea(r.alfa / 2) + "," + r.gl, r.critico)],
+    pasos: [
+      ["Grados de libertad", "ν = n − 1", "ν = " + n + " − 1 = " + r.gl],
+      ["Margen de error", "e = t_α/2,ν · s_d / √n",
+        "e = " + formatear(r.critico.valor) + " · " + formatear(desvD) + " / √" + n + " = " + formatear(r.margen)],
+    ].concat(pasosLimites("d̄", mediaD, r)),
+    resultado: formatear(r.inferior) + " ≤ μ_D ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "la media de las diferencias pareadas", "μ_D", r) + " " +
+      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    notas: [
+      "Cada diferencia es d = muestra 1 − muestra 2, y μ_D = μ₁ − μ₂. Si se invierte el orden, cambia el signo del intervalo.",
+      "Las diferencias se trabajan como una sola muestra de n pares con t y ν = n − 1; esto supone que las diferencias " +
+        "vienen de una población aproximadamente normal.",
+    ],
+    advertencias: [],
+    tamano: null,
+  };
+}
+
+function presentarCocienteVarianzas(r, n1, s1, n2, s2, confianza) {
+  const datos = [["Tamaño de la muestra 1 (n₁)", n1]];
+  if (s1 !== null) datos.push(["Desviación muestral 1 (s₁)", formatear(s1)]);
+  datos.push(["Varianza muestral 1 (S₁²)", formatear(r.varianza1)], ["Tamaño de la muestra 2 (n₂)", n2]);
+  if (s2 !== null) datos.push(["Desviación muestral 2 (s₂)", formatear(s2)]);
+  datos.push(["Varianza muestral 2 (S₂²)", formatear(r.varianza2)]);
+
+  const area = formatearArea(r.alfa / 2);
+  return {
+    datos: datos.concat(filasNivel(confianza, r.alfa)),
+    criticos: [
+      filaCritico("F_α/2(ν₁,ν₂) = F_" + area + "(" + r.gl1 + "," + r.gl2 + ")", r.fInferior),
+      filaCritico("F_α/2(ν₂,ν₁) = F_" + area + "(" + r.gl2 + "," + r.gl1 + ")", r.fSuperior),
+    ],
+    pasos: [
+      ["Grados de libertad", "ν₁ = n₁ − 1 y ν₂ = n₂ − 1",
+        "ν₁ = " + n1 + " − 1 = " + r.gl1 + "; ν₂ = " + n2 + " − 1 = " + r.gl2],
+      ["Cociente muestral", "S₁² / S₂²", formatear(r.varianza1) + " / " + formatear(r.varianza2) + " = " + formatear(r.razon)],
+      ["Límite inferior", "(S₁² / S₂²) · 1 / F_α/2(ν₁,ν₂)",
+        formatear(r.razon) + " · 1 / " + formatear(r.fInferior.valor) + " = " + formatear(r.inferior)],
+      ["Límite superior", "(S₁² / S₂²) · F_α/2(ν₂,ν₁)",
+        formatear(r.razon) + " · " + formatear(r.fSuperior.valor) + " = " + formatear(r.superior)],
+    ],
+    resultado: formatear(r.inferior) + " ≤ σ₁² / σ₂² ≤ " + formatear(r.superior),
+    interpretacion: interpretar(confianza, "el cociente de varianzas poblacionales", "σ₁² / σ₂²", r) + " " +
+      criterioFormulario(r, 1, "σ₁²", "σ₂²"),
+    notas: [
+      "Este intervalo no es simétrico alrededor de S₁² / S₂², por eso no tiene un margen de error e: cada límite " +
+        "usa su propio valor de F, con los grados de libertad en distinto orden.",
+      "La distribución F supone poblaciones normales y muestras independientes. Si necesitas σ₁ / σ₂, saca la " +
+        "raíz cuadrada de los dos límites.",
+      NOTA_INDEPENDIENTES,
+    ],
+    advertencias: [],
+    tamano: null,
+  };
+}
+
+// Criterio de decisión del formulario para la diferencia (se compara con 0) o el
+// cociente (se compara con 1): ambos límites a un lado indican cuál es mayor; si el
+// intervalo contiene la referencia, no se puede afirmar que sean diferentes.
+function criterioFormulario(r, referencia, izquierda, derecha) {
+  const cero = referencia === 0;
+  if (r.inferior > referencia) {
+    return "Criterio del formulario: los dos límites son " + (cero ? "positivos" : "mayores que 1") +
+      ", así que " + izquierda + " > " + derecha + ".";
+  }
+  if (r.superior < referencia) {
+    return "Criterio del formulario: los dos límites son " + (cero ? "negativos" : "menores que 1") +
+      ", así que " + izquierda + " < " + derecha + ".";
+  }
+  return "Criterio del formulario: el intervalo contiene el " + referencia + ", así que " + izquierda + " = " +
+    derecha + " (no se puede afirmar que sean diferentes).";
 }
 
 // Muestra el procedimiento completo del intervalo.
@@ -584,7 +918,10 @@ function mostrarIntervalo(p) {
   agregarTabla(["Paso", "Fórmula", "Sustitución"], p.pasos, c);
 
   agregarElemento("h3", "Resultado", c);
-  agregarElemento("p", p.resultado, c).className = "resultado-intervalo";
+  // resultado es un texto, o una lista de textos cuando hay más de un intervalo (varianza y σ).
+  for (const linea of [].concat(p.resultado)) {
+    agregarElemento("p", linea, c).className = "resultado-intervalo";
+  }
   agregarElemento("p", p.interpretacion, c);
   for (const aviso of p.advertencias) {
     agregarElemento("p", "Atención: " + aviso, c).className = "aviso";

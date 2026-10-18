@@ -8,8 +8,10 @@ JavaScript, sin dependencias ni paso de compilación.
 > estadísticos descriptivos a partir de listas de datos (Parte 3), funciones
 > para obtener valores críticos de Z, t, chi-cuadrada y F (Parte 4),
 > identificación del método que corresponde al ejercicio (Parte 5) e
-> intervalos de confianza de una muestra: media, proporción y varianza (Parte 6).
-> Todavía no se resuelven intervalos de dos muestras ni pruebas de hipótesis.
+> intervalos de confianza de una muestra: media, proporción y varianza (Parte 6)
+> e intervalos de dos muestras: diferencia de medias, diferencia de proporciones,
+> muestras pareadas y cociente de varianzas (Parte 7).
+> Todavía no se resuelven pruebas de hipótesis.
 
 ## Cómo se usa la interfaz
 
@@ -26,7 +28,7 @@ El botón **Revisar datos** indica si falta elegir algo. Si los datos vienen en
 lista, también calcula y muestra los estadísticos de cada muestra. Después
 muestra el **método identificado** con su distribución, grados de libertad y
 por qué corresponde, o explica qué dato falta o por qué no se puede decidir.
-En intervalos de una muestra, además calcula y muestra el **intervalo de
+En intervalos (una o dos muestras), además calcula y muestra el **intervalo de
 confianza** paso a paso (ver abajo).
 
 ## Identificación del método (`js/metodos.js`)
@@ -51,10 +53,10 @@ estadísticas resumidas se usa el campo n). Una muestra es **grande si n ≥ 30*
 | Muestras pareadas | — | t, gl = n − 1 (n = número de pares) |
 
 Las reglas de una media siguen el formulario: Z si "n ≥ 30 o σ² conocida" y t si
-"n < 30 y σ² desconocida". Las de dos medias se revisarán contra el formulario en
-la Parte 7. Una combinación que no coincide con exactamente una fila **no se
-asigna a ningún método**: la página explica por qué y pide confirmarlo con el
-profesor. Hoy eso ocurre con:
+"n < 30 y σ² desconocida". Las de dos medias siguen las filas del formulario
+(σ² conocidas, varianzas iguales o diferentes). Una combinación que no coincide
+con exactamente una fila **no se asigna a ningún método**: la página explica por
+qué y pide confirmarlo con el profesor. Hoy eso ocurre con:
 
 - Dos medias con σ desconocidas y varianzas iguales, con una muestra grande y otra pequeña.
 - Dos medias con σ desconocidas, varianzas diferentes y ambas muestras grandes
@@ -74,6 +76,12 @@ Fórmulas del formulario implementadas:
 | Media, n < 30 y σ² desconocida | x̄ − e ≤ μ ≤ x̄ + e | e = t_α/2,ν · s / √n | ν = n − 1 |
 | Proporción | p − e ≤ π ≤ p + e | e = z_α/2 · √(p·q / n), p = x / n, q = 1 − p | — |
 | Varianza | (n − 1)S² / χ²_α/2,ν ≤ σ² ≤ (n − 1)S² / χ²_1−α/2,ν | no tiene (no es simétrico) | ν = n − 1 |
+
+En una varianza también se muestra el intervalo de la desviación estándar:
+√(límite inferior de σ²) ≤ σ ≤ √(límite superior de σ²), calculado con los
+límites sin redondear. Los límites de varianza y σ se escriben con 4 decimales o,
+si son menores que 0.1, con 4 cifras significativas (`formatearLimite`), para que
+valores como 0.00001353 no se vean como 0.0000.
 
 Tamaño de muestra (opcional, si se escribe el error máximo deseado e):
 
@@ -100,6 +108,50 @@ supuestos (población normal para t y chi-cuadrada).
   intervalo con una advertencia (el formulario no fija esa condición).
 - Tamaño de muestra: e > 0 (y e < 1 en proporciones). Si e no es válido, el
   intervalo se muestra igual y se explica por qué no se calculó n.
+
+## Intervalos de confianza de dos muestras (`js/intervalos.js`)
+
+Fórmulas del formulario implementadas (x̄₁ − x̄₂ es la diferencia de medias de
+muestras **independientes**):
+
+| Caso | Margen de error e | gl |
+|---|---|---|
+| Dos medias, σ² conocidas (o n₁ y n₂ ≥ 30 con s₁ y s₂) | e = z_α/2 · √(σ₁²/n₁ + σ₂²/n₂) | — |
+| Dos medias, σ² desconocidas e **iguales** (n < 30) | e = t_α/2,ν · Sp · √(1/n₁ + 1/n₂), Sp = √(((n₁−1)s₁² + (n₂−1)s₂²) / (n₁+n₂−2)) | ν = n₁ + n₂ − 2 |
+| Dos medias, σ² desconocidas y **diferentes** | e = t_α/2,ν · √(s₁²/n₁ + s₂²/n₂) | ν de Welch (no entero) |
+| Dos proporciones | e = z_α/2 · √(p₁q₁/n₁ + p₂q₂/n₂) | — |
+| Muestras pareadas | e = t_α/2,ν · s_d / √n, sobre d = muestra 1 − muestra 2 | ν = n − 1 |
+| Cociente de varianzas | (S₁²/S₂²)·1/F_α/2(ν₁,ν₂) ≤ σ₁²/σ₂² ≤ (S₁²/S₂²)·F_α/2(ν₂,ν₁); no tiene e | ν₁ = n₁ − 1, ν₂ = n₂ − 1 |
+
+Los intervalos de medias, proporciones y pareadas son (x̄₁ − x̄₂) ± e, (p₁ − p₂) ± e
+y d̄ ± e. F_α/2(a,b) deja α/2 a la derecha y tiene a grados de libertad en el
+numerador; se pide a la Parte 4 con área a la izquierda 1 − α/2 (en el límite
+superior los grados de libertad van intercambiados).
+
+**Cómo se eligen los datos.** Con listas se calculan n, x̄, s (o p̂, S²) de cada
+muestra; con estadísticas resumidas se leen los campos. σ₁ y σ₂ solo se toman de
+los campos de σ conocida: una s calculada o escrita nunca se usa como σ, salvo en
+el caso del formulario de muestras grandes, donde se avisa. En **pareadas** con
+listas, las dos listas deben tener la misma cantidad de datos; se calculan las
+diferencias d = muestra 1 − muestra 2 y se trabajan como una sola muestra. En
+dos medias, las listas pueden tener tamaños distintos.
+
+**Interpretación.** Además del texto general, se muestra el criterio de decisión
+del formulario: dos límites positivos → el primer parámetro es mayor; dos
+negativos → es menor; si el intervalo contiene 0 (o 1 en el cociente de
+varianzas) → no se puede afirmar que sean diferentes. No es una prueba de hipótesis.
+
+**Validaciones** (si algo falla se explica y no se muestra intervalo): datos
+faltantes o no numéricos, n entero (n ≥ 2 donde se calcula s), desviaciones y
+varianzas > 0, x entero entre 0 y n o p̂ entre 0 y 1 (no ambos) en cada muestra,
+p = 0 o p = 1 en una muestra (no se puede usar la aproximación normal), Z con
+σ desconocidas solo si ambas n ≥ 30, t con varianza combinada solo si ambas
+n < 30, y Welch no se usa si ambas n ≥ 30 (coincide con Z; hay que confirmarlo).
+Con n·p o n·q < 5, o un límite fuera de [−1, 1], se muestra el intervalo con
+una advertencia.
+
+**Tamaño de muestra:** el formulario solo trae esa fórmula para una media y una
+proporción, así que en dos muestras no se calcula.
 
 ## Formato de las listas de datos
 
@@ -180,13 +232,14 @@ asistente-estadistico/
 │   ├── estadistica.js  Lectura de listas y fórmulas de estadísticos
 │   ├── valores-criticos.js  Valores críticos de Z, t, chi-cuadrada y F
 │   ├── metodos.js   Reglas para identificar el método
-│   ├── intervalos.js  Intervalos de confianza de una muestra
+│   ├── intervalos.js  Intervalos de confianza de una y dos muestras
 │   └── app.js       Interfaz: muestra campos y resultados
 ├── tests/
 │   ├── estadistica.test.js  Pruebas de js/estadistica.js
 │   ├── valores-criticos.test.js  Pruebas de js/valores-criticos.js
 │   ├── metodos.test.js  Pruebas de js/metodos.js
-│   └── intervalos.test.js  Pruebas de js/intervalos.js
+│   ├── intervalos.test.js  Pruebas de los intervalos de una muestra
+│   └── intervalos-dos-muestras.test.js  Pruebas de los intervalos de dos muestras
 └── README.md
 ```
 

@@ -149,6 +149,52 @@ test("varianza: el intervalo no es simétrico alrededor de s²", function () {
   assert.equal(r.margen, undefined);
 });
 
+test("desviación estándar: los límites de σ son la raíz de los límites de σ² (sin redondear)", function () {
+  // n = 10, s² = 0.286, 95 %: 0.1353 < σ² < 0.9532  →  0.3678 < σ < 0.9763
+  const r = sinError(ic.intervaloVarianza(10, null, 0.286, 95));
+  assert.equal(r.sigmaInferior, Math.sqrt(r.inferior));
+  assert.equal(r.sigmaSuperior, Math.sqrt(r.superior));
+  cercano(r.sigmaInferior * r.sigmaInferior, r.inferior);
+  cercano(r.sigmaSuperior * r.sigmaSuperior, r.superior);
+  assert.equal(Number(r.sigmaInferior.toFixed(4)), 0.3678);
+  assert.equal(Number(r.sigmaSuperior.toFixed(4)), 0.9763);
+  // Con los límites ya redondeados a 4 decimales el resultado sería distinto: no se usan.
+  assert.notEqual(r.sigmaInferior, Math.sqrt(Number(r.inferior.toFixed(4))));
+  assert.ok(r.sigmaInferior < Math.sqrt(0.286) && Math.sqrt(0.286) < r.sigmaSuperior);
+});
+
+test("desviación estándar: con s o con s² da el mismo intervalo de σ", function () {
+  const conS = sinError(ic.intervaloVarianza(10, 2, null, 90));
+  const conS2 = sinError(ic.intervaloVarianza(10, null, 4, 90));
+  cercano(conS.sigmaInferior, conS2.sigmaInferior);
+  cercano(conS.sigmaSuperior, conS2.sigmaSuperior);
+});
+
+test("formato de límites pequeños: conserva 4 cifras significativas", function () {
+  assert.equal(ic.formatearLimite(0.1353115396900236), "0.1353");      // desde 0.1: 4 decimales, como antes
+  assert.equal(ic.formatearLimite(12.5), "12.5");
+  assert.equal(ic.formatearLimite(100), "100");
+  assert.equal(ic.formatearLimite(0), "0");
+  assert.equal(ic.formatearLimite(0.000123456), "0.0001235");           // con 4 decimales sería 0.0001
+  assert.equal(ic.formatearLimite(0.0123456), "0.01235");
+  assert.equal(ic.formatearLimite(-0.000123456), "-0.0001235");
+  assert.equal(ic.formatearLimite(0.000000012346), "0.00000001235");   // sin notación científica
+});
+
+test("los límites pequeños de varianza y σ se distinguen al mostrarlos", function () {
+  // Datos muy pequeños: s² = 0.0000286 (s ≈ 0.0053), n = 10, 95 %
+  const r = sinError(ic.intervaloVarianza(10, null, 0.0000286, 95));
+  const textos = [r.inferior, r.superior, r.sigmaInferior, r.sigmaSuperior].map(ic.formatearLimite);
+  for (const texto of textos) {
+    assert.notEqual(Number(texto), 0, texto + " no debe verse como 0");
+    assert.ok(texto.replace(/^[-0.]+/, "").length >= 4, texto + " debe tener 4 cifras significativas");
+  }
+  // El texto mostrado coincide con el valor calculado hasta la cuarta cifra significativa.
+  assert.ok(Math.abs(Number(textos[2]) - r.sigmaInferior) < 5e-4 * r.sigmaInferior);
+  // Elevar σ al cuadrado devuelve el límite de σ² (se muestra igual).
+  assert.equal(ic.formatearLimite(r.sigmaSuperior * r.sigmaSuperior), ic.formatearLimite(r.superior));
+});
+
 test("varianza: valida s, s² y el tamaño", function () {
   assert.match(ic.intervaloVarianza(10, null, null, 95).error, /Falta la desviación estándar muestral \(s\) o la varianza/);
   assert.match(ic.intervaloVarianza(10, 2, 4, 95).error, /solo uno/);
