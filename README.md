@@ -136,10 +136,8 @@ listas, las dos listas deben tener la misma cantidad de datos; se calculan las
 diferencias d = muestra 1 − muestra 2 y se trabajan como una sola muestra. En
 dos medias, las listas pueden tener tamaños distintos.
 
-**Interpretación.** Además del texto general, se muestra el criterio de decisión
-del formulario: dos límites positivos → el primer parámetro es mayor; dos
-negativos → es menor; si el intervalo contiene 0 (o 1 en el cociente de
-varianzas) → no se puede afirmar que sean diferentes. No es una prueba de hipótesis.
+**Interpretación.** Cada intervalo de dos muestras trae el texto general del
+nivel de confianza y, aparte, el criterio de decisión (ver abajo).
 
 **Validaciones** (si algo falla se explica y no se muestra intervalo): datos
 faltantes o no numéricos, n entero (n ≥ 2 donde se calcula s), desviaciones y
@@ -152,6 +150,39 @@ una advertencia.
 
 **Tamaño de muestra:** el formulario solo trae esa fórmula para una media y una
 proporción, así que en dos muestras no se calcula.
+
+## Criterios de decisión (`js/decisiones.js`)
+
+La función `decidirIntervalo(clave, inferior, superior)` aplica la columna
+"Criterios de decisión" del formulario a los límites **sin redondear** del
+intervalo. Cada pareja son los dos límites (inferior, superior). La página
+muestra el criterio, los signos de los límites, la explicación y la decisión.
+
+| Caso | (+,+) | (−,+) | (−,−) |
+|---|---|---|---|
+| Dos medias (Z, t iguales, t diferentes) y pareadas (μ_D = μ₁ − μ₂) | μ₁ > μ₂ | μ₁ = μ₂ | μ₁ < μ₂ |
+| Dos proporciones | π₁ > π₂ | π₁ = π₂ | π₁ < π₂ |
+
+| Cociente de varianzas | (>1,>1) | (<1,>1) | (<1,<1) |
+|---|---|---|---|
+| Decisión | σ₁² > σ₂² | σ₁² = σ₂² | σ₁² < σ₂² |
+
+En diferencias se mira el signo de cada límite (se compara con 0); en el
+cociente, si cada límite es menor o mayor que 1. Un intervalo que contiene el 0
+(o el 1) significa que no se puede afirmar que sean diferentes. No es una
+prueba de hipótesis.
+
+**Sin decisión automática** (se explica qué confirmar):
+
+- Una media, una proporción y una varianza: el formulario no trae criterio.
+- Un límite exactamente igual a 0 (o 1): el formulario solo trae los tres casos de
+  arriba y no dice cuál corresponde. Confirmar con el profesor.
+- Límites no válidos (no numéricos o inferior > superior).
+
+Pendiente de confirmar con el material de clase: el formulario muestra una sola
+celda de criterios para dos medias y pareadas; se aplicó a pareadas porque su fila
+está dentro de esa celda. Si el intervalo de dos proporciones tiene la advertencia
+de n·p o n·q < 5, la decisión se muestra con un aviso para revisarla.
 
 ## Formato de las listas de datos
 
@@ -232,12 +263,14 @@ asistente-estadistico/
 │   ├── estadistica.js  Lectura de listas y fórmulas de estadísticos
 │   ├── valores-criticos.js  Valores críticos de Z, t, chi-cuadrada y F
 │   ├── metodos.js   Reglas para identificar el método
+│   ├── decisiones.js  Criterios de decisión de los intervalos de dos muestras
 │   ├── intervalos.js  Intervalos de confianza de una y dos muestras
 │   └── app.js       Interfaz: muestra campos y resultados
 ├── tests/
 │   ├── estadistica.test.js  Pruebas de js/estadistica.js
 │   ├── valores-criticos.test.js  Pruebas de js/valores-criticos.js
 │   ├── metodos.test.js  Pruebas de js/metodos.js
+│   ├── decisiones.test.js  Pruebas de js/decisiones.js
 │   ├── intervalos.test.js  Pruebas de los intervalos de una muestra
 │   └── intervalos-dos-muestras.test.js  Pruebas de los intervalos de dos muestras
 └── README.md

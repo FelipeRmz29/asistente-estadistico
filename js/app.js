@@ -8,6 +8,8 @@
 //          (las fórmulas están en js/intervalos.js).
 // Parte 7: calcula y muestra los intervalos de confianza de dos muestras
 //          (las fórmulas están en js/intervalos.js).
+// Parte 8: muestra el criterio de decisión del formulario para los intervalos de
+//          dos muestras (las reglas están en js/decisiones.js).
 // Todavía no se resuelven pruebas de hipótesis.
 
 const formulario = document.getElementById("formulario-ejercicio");
@@ -717,8 +719,8 @@ function presentarDosMediasZ(r, n1, media1, desv1, n2, media2, desv2, sigmaConoc
         "e = " + formatear(r.critico.valor) + " · " + formatear(r.errorEstandar) + " = " + formatear(r.margen)],
     ].concat(pasosLimites("(x̄₁ − x̄₂)", r.diferencia, r)),
     resultado: formatear(r.inferior) + " ≤ μ₁ − μ₂ ≤ " + formatear(r.superior),
-    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r) + " " +
-      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r),
+    decision: decidirIntervalo("dos-medias-z", r.inferior, r.superior),
     notas: (sigmaConocida ? [] :
       ["σ₁ y σ₂ no se conocen, pero como n₁ y n₂ son ≥ 30 el formulario usa Z; en la fórmula se usan s₁ y s₂ en lugar de σ₁ y σ₂."])
       .concat([NOTA_INDEPENDIENTES]),
@@ -744,8 +746,8 @@ function presentarDosMediasTIguales(r, n1, media1, s1, n2, media2, s2, confianza
           formatear(r.margen)],
     ].concat(pasosLimites("(x̄₁ − x̄₂)", r.diferencia, r)),
     resultado: formatear(r.inferior) + " ≤ μ₁ − μ₂ ≤ " + formatear(r.superior),
-    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r) + " " +
-      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r),
+    decision: decidirIntervalo("dos-medias-t-iguales", r.inferior, r.superior),
     notas: [
       "Esta fórmula supone que las varianzas poblacionales son iguales (σ₁² = σ₂²), como indica el enunciado, " +
         "y que las poblaciones son aproximadamente normales.",
@@ -773,8 +775,8 @@ function presentarDosMediasTDiferentes(r, n1, media1, s1, n2, media2, s2, confia
         "e = " + formatear(r.critico.valor) + " · " + formatear(r.errorEstandar) + " = " + formatear(r.margen)],
     ].concat(pasosLimites("(x̄₁ − x̄₂)", r.diferencia, r)),
     resultado: formatear(r.inferior) + " ≤ μ₁ − μ₂ ≤ " + formatear(r.superior),
-    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r) + " " +
-      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r),
+    decision: decidirIntervalo("dos-medias-t-diferentes", r.inferior, r.superior),
     notas: [
       "Esta fórmula supone varianzas poblacionales diferentes y poblaciones aproximadamente normales. " +
         "Los grados de libertad (Welch) no son un número entero y se usan con todos sus decimales; si tu profesor " +
@@ -818,8 +820,8 @@ function presentarDosProporciones(r, n1, exitos1, n2, exitos2, confianza) {
     criticos: [filaCritico("z_α/2 = z_" + formatearArea(r.alfa / 2), r.critico)],
     pasos: pasos.concat(pasosLimites("(p₁ − p₂)", r.diferencia, r)),
     resultado: formatear(r.inferior) + " ≤ π₁ − π₂ ≤ " + formatear(r.superior),
-    interpretacion: interpretar(confianza, "la diferencia de proporciones poblacionales", "π₁ − π₂", r) + " " +
-      criterioFormulario(r, 0, "π₁", "π₂"),
+    interpretacion: interpretar(confianza, "la diferencia de proporciones poblacionales", "π₁ − π₂", r),
+    decision: decidirIntervalo("dos-proporciones", r.inferior, r.superior),
     notas: [NOTA_INDEPENDIENTES],
     advertencias: r.advertencias,
     tamano: null,
@@ -840,8 +842,8 @@ function presentarPareadas(r, n, mediaD, desvD, confianza) {
         "e = " + formatear(r.critico.valor) + " · " + formatear(desvD) + " / √" + n + " = " + formatear(r.margen)],
     ].concat(pasosLimites("d̄", mediaD, r)),
     resultado: formatear(r.inferior) + " ≤ μ_D ≤ " + formatear(r.superior),
-    interpretacion: interpretar(confianza, "la media de las diferencias pareadas", "μ_D", r) + " " +
-      criterioFormulario(r, 0, "μ₁", "μ₂"),
+    interpretacion: interpretar(confianza, "la media de las diferencias pareadas", "μ_D", r),
+    decision: decidirIntervalo("pareadas", r.inferior, r.superior),
     notas: [
       "Cada diferencia es d = muestra 1 − muestra 2, y μ_D = μ₁ − μ₂. Si se invierte el orden, cambia el signo del intervalo.",
       "Las diferencias se trabajan como una sola muestra de n pares con t y ν = n − 1; esto supone que las diferencias " +
@@ -876,8 +878,8 @@ function presentarCocienteVarianzas(r, n1, s1, n2, s2, confianza) {
         formatear(r.razon) + " · " + formatear(r.fSuperior.valor) + " = " + formatear(r.superior)],
     ],
     resultado: formatear(r.inferior) + " ≤ σ₁² / σ₂² ≤ " + formatear(r.superior),
-    interpretacion: interpretar(confianza, "el cociente de varianzas poblacionales", "σ₁² / σ₂²", r) + " " +
-      criterioFormulario(r, 1, "σ₁²", "σ₂²"),
+    interpretacion: interpretar(confianza, "el cociente de varianzas poblacionales", "σ₁² / σ₂²", r),
+    decision: decidirIntervalo("cociente-varianzas", r.inferior, r.superior),
     notas: [
       "Este intervalo no es simétrico alrededor de S₁² / S₂², por eso no tiene un margen de error e: cada límite " +
         "usa su propio valor de F, con los grados de libertad en distinto orden.",
@@ -890,21 +892,22 @@ function presentarCocienteVarianzas(r, n1, s1, n2, s2, confianza) {
   };
 }
 
-// Criterio de decisión del formulario para la diferencia (se compara con 0) o el
-// cociente (se compara con 1): ambos límites a un lado indican cuál es mayor; si el
-// intervalo contiene la referencia, no se puede afirmar que sean diferentes.
-function criterioFormulario(r, referencia, izquierda, derecha) {
-  const cero = referencia === 0;
-  if (r.inferior > referencia) {
-    return "Criterio del formulario: los dos límites son " + (cero ? "positivos" : "mayores que 1") +
-      ", así que " + izquierda + " > " + derecha + ".";
+// Muestra el criterio aplicado y la decisión, o por qué no hay decisión automática.
+// conAdvertencias: el intervalo tiene advertencias, y la decisión depende de él.
+function mostrarDecision(d, conAdvertencias, contenedor) {
+  agregarElemento("h3", "Criterio de decisión", contenedor);
+  if (d.criterio) agregarElemento("p", "Criterio del formulario: " + d.criterio, contenedor);
+
+  if (d.estado === "decidido") {
+    agregarElemento("p", "Signos de los límites (inferior, superior): " + d.signos + ". " + d.explicacion, contenedor);
+    agregarElemento("p", "Decisión: " + d.decision, contenedor).className = "resultado-intervalo";
+    if (conAdvertencias) {
+      agregarElemento("p", "Esta decisión depende del intervalo, que tiene una advertencia arriba: revísala antes de usarla.",
+        contenedor).className = "aviso";
+    }
+  } else {
+    agregarElemento("p", "Sin decisión automática: " + d.mensaje, contenedor).className = "aviso";
   }
-  if (r.superior < referencia) {
-    return "Criterio del formulario: los dos límites son " + (cero ? "negativos" : "menores que 1") +
-      ", así que " + izquierda + " < " + derecha + ".";
-  }
-  return "Criterio del formulario: el intervalo contiene el " + referencia + ", así que " + izquierda + " = " +
-    derecha + " (no se puede afirmar que sean diferentes).";
 }
 
 // Muestra el procedimiento completo del intervalo.
@@ -925,6 +928,11 @@ function mostrarIntervalo(p) {
   agregarElemento("p", p.interpretacion, c);
   for (const aviso of p.advertencias) {
     agregarElemento("p", "Atención: " + aviso, c).className = "aviso";
+  }
+
+  // Criterio de decisión del formulario (js/decisiones.js); solo hay en los casos de dos muestras.
+  if (p.decision) {
+    mostrarDecision(p.decision, p.advertencias.length > 0, c);
   }
   for (const nota of p.notas) {
     agregarElemento("p", "Nota: " + nota, c).className = "ayuda";
