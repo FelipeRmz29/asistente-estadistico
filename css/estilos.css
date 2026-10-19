@@ -163,6 +163,19 @@ button:hover {
   background-color: #163a5a;
 }
 
+/* Botón secundario (Reiniciar): mismo tamaño, pero con fondo blanco */
+button.secundario {
+  margin-left: 8px;
+  color: #1f4e79;
+  background-color: #fff;
+  border: 2px solid #1f4e79;
+  padding: 8px 18px; /* 2px menos por el borde, para que mida lo mismo */
+}
+
+button.secundario:hover {
+  background-color: #e8eef5;
+}
+
 #estado {
   margin: 12px 0 0;
 }
@@ -199,22 +212,26 @@ textarea[aria-invalid="true"] {
   color: #b00020;
 }
 
-/* ---------- Intervalo de confianza (Parte 6) ---------- */
+/* ---------- Intervalo de confianza (Parte 6) y prueba de hipótesis (Parte 9) ---------- */
 
-#intervalo {
+#intervalo,
+#prueba {
   margin-top: 16px;
 }
 
-#intervalo h3 {
+#intervalo h3,
+#prueba h3 {
   margin: 20px 0 4px;
 }
 
-#intervalo h3:first-child {
+#intervalo h3:first-child,
+#prueba h3:first-child {
   margin-top: 0;
 }
 
 /* Las sustituciones largas se parten en varias líneas */
-#intervalo td {
+#intervalo td,
+#prueba td {
   overflow-wrap: anywhere;
 }
 
@@ -224,7 +241,8 @@ textarea[aria-invalid="true"] {
 }
 
 /* Advertencias sobre los supuestos o el resultado */
-#intervalo .aviso {
+#intervalo .aviso,
+#prueba .aviso {
   color: #b00020;
 }
 

@@ -640,5 +640,10 @@ if (typeof module !== "undefined") {
     tamanoMuestraMedia,
     tamanoMuestraProporcion,
     formatearLimite,
+    // Validaciones que también usan las pruebas de hipótesis (js/pruebas.js).
+    revisarTamanoDe,
+    revisarNumero,
+    revisarPositivo,
+    varianzaDe,
   };
 }

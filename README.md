@@ -10,8 +10,8 @@ JavaScript, sin dependencias ni paso de compilación.
 > identificación del método que corresponde al ejercicio (Parte 5) e
 > intervalos de confianza de una muestra: media, proporción y varianza (Parte 6)
 > e intervalos de dos muestras: diferencia de medias, diferencia de proporciones,
-> muestras pareadas y cociente de varianzas (Parte 7).
-> Todavía no se resuelven pruebas de hipótesis.
+> muestras pareadas y cociente de varianzas (Parte 7), criterios de decisión de
+> los intervalos (Parte 8) y pruebas de hipótesis de esos mismos casos (Parte 9).
 
 ## Cómo se usa la interfaz
 
@@ -22,14 +22,20 @@ JavaScript, sin dependencias ni paso de compilación.
 3. **Formato de los datos:** lista de valores individuales o estadísticas resumidas.
 4. **Datos del ejercicio:** aparecen solo los campos del caso y formato elegidos.
    En una media y dos medias se pregunta si σ es conocida; en dos medias con σ
-   desconocida, si las varianzas se suponen iguales o diferentes.
+   desconocida, si las varianzas se suponen iguales o diferentes. En pruebas de
+   hipótesis también se piden el valor del parámetro en H₀ y la hipótesis
+   alternativa H₁ (que indica la cola: ≠ dos colas, < izquierda, > derecha).
+
+El botón **Reiniciar** vuelve el ejercicio al estado inicial (borra datos,
+opciones, resultados y mensajes, sin recargar la página); si ya se escribieron
+datos, primero pide confirmación.
 
 El botón **Revisar datos** indica si falta elegir algo. Si los datos vienen en
 lista, también calcula y muestra los estadísticos de cada muestra. Después
 muestra el **método identificado** con su distribución, grados de libertad y
 por qué corresponde, o explica qué dato falta o por qué no se puede decidir.
 En intervalos (una o dos muestras), además calcula y muestra el **intervalo de
-confianza** paso a paso (ver abajo).
+confianza** paso a paso, y en pruebas de hipótesis, la **prueba** completa (ver abajo).
 
 ## Identificación del método (`js/metodos.js`)
 
@@ -184,6 +190,64 @@ celda de criterios para dos medias y pareadas; se aplicó a pareadas porque su f
 está dentro de esa celda. Si el intervalo de dos proporciones tiene la advertencia
 de n·p o n·q < 5, la decisión se muestra con un aviso para revisarla.
 
+## Pruebas de hipótesis (`js/pruebas.js`)
+
+Se resuelven los mismos casos y con las mismas reglas que los intervalos (Z o t
+según σ y n, varianzas iguales o diferentes, etc.; ver `js/metodos.js`). Los
+datos se leen igual que en los intervalos (listas o estadísticas resumidas,
+función `leerDatosCaso` de `js/app.js`).
+
+| Caso | H₀ | Estadístico de prueba | gl |
+|---|---|---|---|
+| Media, n ≥ 30 o σ² conocida | μ = μ₀ | z = (x̄ − μ₀) / (σ / √n) (s en lugar de σ si σ es desconocida) | — |
+| Media, n < 30 y σ² desconocida | μ = μ₀ | t = (x̄ − μ₀) / (s / √n) | ν = n − 1 |
+| Proporción | π = π₀ | z = (p − π₀) / √(π₀·q₀ / n), q₀ = 1 − π₀ | — |
+| Varianza | σ² = σ₀² | χ² = (n − 1)S² / σ₀² | ν = n − 1 |
+| Dos medias, σ² conocidas (o n₁ y n₂ ≥ 30) | μ₁ − μ₂ = d₀ | z = ((x̄₁ − x̄₂) − d₀) / √(σ₁²/n₁ + σ₂²/n₂) | — |
+| Dos medias, σ² desconocidas e iguales | μ₁ − μ₂ = d₀ | t = ((x̄₁ − x̄₂) − d₀) / (Sp · √(1/n₁ + 1/n₂)) | ν = n₁ + n₂ − 2 |
+| Dos medias, σ² desconocidas y diferentes | μ₁ − μ₂ = d₀ | t = ((x̄₁ − x̄₂) − d₀) / √(s₁²/n₁ + s₂²/n₂) | ν de Welch |
+| Dos proporciones | π₁ = π₂ | z = (p₁ − p₂) / √(p·q·(1/n₁ + 1/n₂)), p = (x₁ + x₂)/(n₁ + n₂) | — |
+| Muestras pareadas | μ_D = d₀ | t = (d̄ − d₀) / (s_d / √n) | ν = n − 1 |
+| Cociente de varianzas | σ₁² = σ₂² | F = S₁² / S₂² | ν₁ = n₁ − 1, ν₂ = n₂ − 1 |
+
+**Hipótesis alternativa y cola.** H₁ se elige con el signo, y el signo decide la cola:
+
+| H₁ | Cola | Región de rechazo | Valor p |
+|---|---|---|---|
+| parámetro < valor de H₀ | izquierda | estadístico < valor crítico con área α a la izquierda | P(X ≤ estadístico) |
+| parámetro > valor de H₀ | derecha | estadístico > valor crítico con área α a la derecha | P(X ≥ estadístico) |
+| parámetro ≠ valor de H₀ | dos colas | fuera de los valores críticos con α/2 en cada cola | 2 · mín(P(X ≤ est.), P(X ≥ est.)) |
+
+Los valores críticos se piden a la Parte 4 y el valor p usa la CDF de la misma
+distribución. Se muestran con la notación del formulario (el subíndice es el área a
+la derecha: z_0.05, χ²_0.975,9, F_0.05(11,9)). Se **rechaza H₀** si el estadístico
+cae en la región de rechazo, que es lo mismo que valor p < α; si no, **no se
+rechaza H₀** (no se dice que H₀ sea cierta). Un estadístico exactamente igual al
+valor crítico no se rechaza.
+
+**Qué se muestra:** H₀ y H₁ con la cola, datos, distribución de referencia y gl,
+cálculo del estadístico con sustitución, valores críticos y región de rechazo,
+valor p, decisión, conclusión en palabras y notas sobre los supuestos.
+
+**Validaciones** (si algo falla se explica y no se muestra decisión): falta la
+hipótesis alternativa o el valor de H₀; α fuera de (0, 1); π₀ fuera de (0, 1);
+σ₀² ≤ 0; las mismas de los intervalos para n, medias, desviaciones, x y p̂; Z con
+σ desconocida solo si n ≥ 30 (en dos medias, ambas); t con varianza combinada solo
+si ambas n < 30; Welch no se usa si ambas n ≥ 30; en dos proporciones, error si
+la proporción combinada es 0 o 1. Con n·π₀, n·q₀ (o n·p, n·q en dos proporciones)
+menor que 5 se muestra una advertencia. A diferencia del intervalo, una proporción
+muestral de 0 o 1 sí se admite en la prueba, porque el error estándar usa π₀ o p.
+
+**Pendiente de confirmar con el profesor** (el formulario solo trae intervalos, así
+que estas fórmulas no salen de él; se usaron las versiones usuales y la página lo
+indica en una nota):
+
+- Una proporción: el error estándar usa π₀ (el valor de H₀), no la p de la muestra.
+- Dos proporciones: se usa la proporción combinada p, y solo se admite H₀: π₁ = π₂
+  (no H₀: π₁ − π₂ = d₀ con d₀ ≠ 0).
+- Cociente de varianzas: solo se admite H₀: σ₁² = σ₂².
+- χ² y F en dos colas: el valor p es el doble de la cola más pequeña.
+
 ## Formato de las listas de datos
 
 - Separa los datos con comas, espacios o saltos de línea y usa punto decimal:
@@ -265,6 +329,7 @@ asistente-estadistico/
 │   ├── metodos.js   Reglas para identificar el método
 │   ├── decisiones.js  Criterios de decisión de los intervalos de dos muestras
 │   ├── intervalos.js  Intervalos de confianza de una y dos muestras
+│   ├── pruebas.js   Pruebas de hipótesis
 │   └── app.js       Interfaz: muestra campos y resultados
 ├── tests/
 │   ├── estadistica.test.js  Pruebas de js/estadistica.js
@@ -272,7 +337,8 @@ asistente-estadistico/
 │   ├── metodos.test.js  Pruebas de js/metodos.js
 │   ├── decisiones.test.js  Pruebas de js/decisiones.js
 │   ├── intervalos.test.js  Pruebas de los intervalos de una muestra
-│   └── intervalos-dos-muestras.test.js  Pruebas de los intervalos de dos muestras
+│   ├── intervalos-dos-muestras.test.js  Pruebas de los intervalos de dos muestras
+│   └── pruebas.test.js  Pruebas de js/pruebas.js (pruebas de hipótesis)
 └── README.md
 ```
 

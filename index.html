@@ -10,6 +10,7 @@
   <script src="js/metodos.js" defer></script>
   <script src="js/intervalos.js" defer></script>
   <script src="js/decisiones.js" defer></script>
+  <script src="js/pruebas.js" defer></script>
   <script src="js/app.js" defer></script>
 </head>
 <body>
@@ -447,10 +448,88 @@
             <input type="number" id="par-sd" name="par-sd" min="0" step="any" inputmode="decimal">
           </div>
         </fieldset>
+
+        <!-- Hipótesis (solo en pruebas de hipótesis, Parte 9) -->
+        <fieldset class="bloque condicional" data-tipo="prueba" data-formato="lista resumen"
+                  data-caso="una-media una-proporcion una-varianza dos-medias dos-proporciones cociente-varianzas pareadas">
+          <legend>Hipótesis</legend>
+
+          <div class="campo condicional" data-caso="una-media una-proporcion una-varianza dos-medias pareadas">
+            <label for="h0-valor">
+              Valor del parámetro en la hipótesis nula
+              <span class="condicional" data-caso="una-media">(μ₀ en H₀: μ = μ₀)</span>
+              <span class="condicional" data-caso="una-proporcion">(π₀ en H₀: π = π₀)</span>
+              <span class="condicional" data-caso="una-varianza">(σ₀² en H₀: σ² = σ₀²)</span>
+              <span class="condicional" data-caso="dos-medias">(d₀ en H₀: μ₁ − μ₂ = d₀)</span>
+              <span class="condicional" data-caso="pareadas">(d₀ en H₀: μ_D = d₀)</span>
+            </label>
+            <input type="number" id="h0-valor" name="h0-valor" step="any" aria-describedby="ayuda-h0-valor">
+            <p class="ayuda" id="ayuda-h0-valor">
+              <span class="condicional" data-caso="una-media">El valor con el que se compara la media, por ejemplo 70 si H₀ dice μ = 70.</span>
+              <span class="condicional" data-caso="una-proporcion">Entre 0 y 1, sin incluirlos. Si te dan un porcentaje, divide entre 100 (40 % → 0.4).</span>
+              <span class="condicional" data-caso="una-varianza">Es una varianza. Si el enunciado da la desviación σ₀, elévala al cuadrado (σ₀ = 3 → 9).</span>
+              <span class="condicional" data-caso="dos-medias pareadas">Si H₀ dice que las dos medias son iguales, escribe 0.</span>
+            </p>
+          </div>
+          <p class="ayuda condicional" data-caso="dos-proporciones">H₀: π₁ = π₂ (es decir, π₁ − π₂ = 0). Solo se admite esta hipótesis nula.</p>
+          <p class="ayuda condicional" data-caso="cociente-varianzas">H₀: σ₁² = σ₂² (es decir, σ₁² / σ₂² = 1). Solo se admite esta hipótesis nula.</p>
+
+          <!-- El símbolo cambia según el caso; el value de cada opción (la cola) no cambia. -->
+          <fieldset class="opciones" aria-describedby="ayuda-alternativa">
+            <legend>Hipótesis alternativa (H₁) y tipo de prueba</legend>
+            <p class="ayuda" id="ayuda-alternativa">
+              <span class="condicional" data-caso="una-media">μ₀ es el valor de referencia de H₀ (el que escribiste arriba).</span>
+              <span class="condicional" data-caso="una-proporcion">π₀ es el valor de referencia de H₀ (el que escribiste arriba).</span>
+              <span class="condicional" data-caso="una-varianza">σ₀² es el valor de referencia de H₀ (el que escribiste arriba).</span>
+              <span class="condicional" data-caso="dos-medias">d₀ es el valor de referencia de H₀ (el que escribiste arriba). Con d₀ = 0, μ₁ − μ₂ &lt; 0 significa μ₁ &lt; μ₂.</span>
+              <span class="condicional" data-caso="pareadas">d₀ es el valor de referencia de H₀ (el que escribiste arriba); μ_D = μ₁ − μ₂. Con d₀ = 0, μ_D &lt; 0 significa μ₁ &lt; μ₂.</span>
+              <span class="condicional" data-caso="dos-proporciones">El 0 es el valor de referencia de H₀ (π₁ = π₂). π₁ − π₂ &lt; 0 significa π₁ &lt; π₂.</span>
+              <span class="condicional" data-caso="cociente-varianzas">El 1 es el valor de referencia de H₀ (σ₁² = σ₂²). σ₁² / σ₂² &lt; 1 significa σ₁² &lt; σ₂².</span>
+            </p>
+            <label class="opcion">
+              <input type="radio" name="alternativa" value="dos-colas">
+              H₁:
+              <span class="condicional" data-caso="una-media">μ ≠ μ₀</span>
+              <span class="condicional" data-caso="una-proporcion">π ≠ π₀</span>
+              <span class="condicional" data-caso="una-varianza">σ² ≠ σ₀²</span>
+              <span class="condicional" data-caso="dos-medias">μ₁ − μ₂ ≠ d₀</span>
+              <span class="condicional" data-caso="pareadas">μ_D ≠ d₀</span>
+              <span class="condicional" data-caso="dos-proporciones">π₁ − π₂ ≠ 0</span>
+              <span class="condicional" data-caso="cociente-varianzas">σ₁² / σ₂² ≠ 1</span>
+              — dos colas
+            </label>
+            <label class="opcion">
+              <input type="radio" name="alternativa" value="izquierda">
+              H₁:
+              <span class="condicional" data-caso="una-media">μ &lt; μ₀</span>
+              <span class="condicional" data-caso="una-proporcion">π &lt; π₀</span>
+              <span class="condicional" data-caso="una-varianza">σ² &lt; σ₀²</span>
+              <span class="condicional" data-caso="dos-medias">μ₁ − μ₂ &lt; d₀</span>
+              <span class="condicional" data-caso="pareadas">μ_D &lt; d₀</span>
+              <span class="condicional" data-caso="dos-proporciones">π₁ − π₂ &lt; 0</span>
+              <span class="condicional" data-caso="cociente-varianzas">σ₁² / σ₂² &lt; 1</span>
+              — cola izquierda
+            </label>
+            <label class="opcion">
+              <input type="radio" name="alternativa" value="derecha">
+              H₁:
+              <span class="condicional" data-caso="una-media">μ &gt; μ₀</span>
+              <span class="condicional" data-caso="una-proporcion">π &gt; π₀</span>
+              <span class="condicional" data-caso="una-varianza">σ² &gt; σ₀²</span>
+              <span class="condicional" data-caso="dos-medias">μ₁ − μ₂ &gt; d₀</span>
+              <span class="condicional" data-caso="pareadas">μ_D &gt; d₀</span>
+              <span class="condicional" data-caso="dos-proporciones">π₁ − π₂ &gt; 0</span>
+              <span class="condicional" data-caso="cociente-varianzas">σ₁² / σ₂² &gt; 1</span>
+              — cola derecha
+            </label>
+          </fieldset>
+        </fieldset>
       </section>
 
       <div class="acciones">
         <button type="submit">Revisar datos</button>
+        <!-- type="button": no envía el formulario -->
+        <button type="button" id="boton-reiniciar" class="secundario">Reiniciar</button>
         <p id="estado" role="status" aria-live="polite"></p>
       </div>
     </form>
@@ -472,6 +551,12 @@
     <section id="intervalo" class="tarjeta" hidden>
       <h2>Intervalo de confianza</h2>
       <div id="contenido-intervalo"></div>
+    </section>
+
+    <!-- Prueba de hipótesis (Parte 9) -->
+    <section id="prueba" class="tarjeta" hidden>
+      <h2>Prueba de hipótesis</h2>
+      <div id="contenido-prueba"></div>
     </section>
   </main>
 
