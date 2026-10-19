@@ -229,6 +229,13 @@ textarea[aria-invalid="true"] {
   margin-top: 0;
 }
 
+/* Subtítulos dentro del procedimiento (Parte 10) */
+#intervalo h4,
+#prueba h4 {
+  margin: 12px 0 4px;
+  font-size: 1rem;
+}
+
 /* Las sustituciones largas se parten en varias líneas */
 #intervalo td,
 #prueba td {

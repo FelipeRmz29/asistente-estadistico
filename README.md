@@ -11,7 +11,8 @@ JavaScript, sin dependencias ni paso de compilación.
 > intervalos de confianza de una muestra: media, proporción y varianza (Parte 6)
 > e intervalos de dos muestras: diferencia de medias, diferencia de proporciones,
 > muestras pareadas y cociente de varianzas (Parte 7), criterios de decisión de
-> los intervalos (Parte 8) y pruebas de hipótesis de esos mismos casos (Parte 9).
+> los intervalos (Parte 8), pruebas de hipótesis de esos mismos casos (Parte 9) y
+> una presentación uniforme del procedimiento y los resultados (Parte 10).
 
 ## Cómo se usa la interfaz
 
@@ -248,6 +249,31 @@ indica en una nota):
 - Cociente de varianzas: solo se admite H₀: σ₁² = σ₂².
 - χ² y F en dos colas: el valor p es el doble de la cola más pequeña.
 
+## Presentación de los resultados (`js/presentacion.js`)
+
+`js/presentacion.js` prepara los textos y las tablas de cada resultado (no calcula
+nada: usa lo que devuelven `js/intervalos.js`, `js/decisiones.js` y `js/pruebas.js`).
+`js/app.js` los pone en la página. Todos los resultados usan las mismas secciones:
+
+| Tarjeta | Secciones |
+|---|---|
+| Estadísticos de los datos (solo con listas) | valores leídos y n, suma, media, varianza y desviación de cada muestra |
+| Método identificado | método, distribución, grados de libertad y por qué |
+| Intervalo de confianza | Datos usados → Procedimiento (valor crítico y cálculos con fórmula y sustitución, incluidos gl, margen de error y límites) → Resultado → Interpretación → criterio de decisión (dos muestras) → tamaño de muestra (si se pidió) → Supuestos y notas |
+| Prueba de hipótesis | Hipótesis (H₀ y H₁) → Datos usados (con α, distribución de referencia y gl) → Procedimiento (estadístico, valor crítico y región de rechazo, valor p) → Resultado (decisión) → Interpretación (conclusión) → Supuestos y notas |
+
+- **Interpretación breve:** una oración. Qué significa el nivel de confianza se
+  explica una sola vez, en las notas del intervalo.
+- **Varianza y desviación estándar:** cada intervalo va etiquetado («Intervalo para
+  la varianza (σ²)» e «Intervalo para la desviación estándar (σ)»).
+- **Redondeo:** una sola nota debajo de los resultados. Se muestran 4 decimales; los
+  valores p y los del caso de una varianza, si son menores que 0.1, con 4 cifras
+  significativas. Solo se redondea lo que se muestra: los cálculos y las decisiones
+  usan todos los decimales.
+- **Errores:** si falta un dato o no es válido, la tarjeta del resultado muestra
+  «Sin resultado» con el motivo (y el mismo mensaje aparece junto al botón); nunca se
+  muestra un resultado parcial como si fuera válido.
+
 ## Formato de las listas de datos
 
 - Separa los datos con comas, espacios o saltos de línea y usa punto decimal:
@@ -271,8 +297,8 @@ Estadísticos calculados (fórmulas implementadas en `js/estadistica.js`):
 | Proporción muestral | p̂ = x / n (x = número de unos) |
 
 Con un solo dato no se puede calcular la varianza (n − 1 = 0) y la página lo indica.
-Los resultados se muestran redondeados a 4 decimales, pero los cálculos usan
-todos los decimales.
+Los resultados se muestran redondeados (ver «Presentación de los resultados»), pero
+los cálculos usan todos los decimales.
 
 ## Valores críticos (`js/valores-criticos.js`)
 
@@ -307,7 +333,7 @@ derecha = 0.025". Si algo no es válido devuelve `{ error: "mensaje" }`.
 **Precisión y redondeo:** el valor crítico se devuelve con todos los decimales
 y así debe usarse en los cálculos. Comparado con SciPy, el error relativo es
 menor que 1×10⁻¹⁰ con gl ≤ 1000 y menor que 1×10⁻⁸ en todo el rango. Al mostrar
-resultados se redondea a 4 decimales (función `formatear` de `js/app.js`).
+resultados se redondea a 4 decimales (función `formatear` de `js/presentacion.js`).
 
 ## Interfaz: campos condicionales
 
@@ -330,6 +356,7 @@ asistente-estadistico/
 │   ├── decisiones.js  Criterios de decisión de los intervalos de dos muestras
 │   ├── intervalos.js  Intervalos de confianza de una y dos muestras
 │   ├── pruebas.js   Pruebas de hipótesis
+│   ├── presentacion.js  Textos y tablas de los resultados (sin cálculos)
 │   └── app.js       Interfaz: muestra campos y resultados
 ├── tests/
 │   ├── estadistica.test.js  Pruebas de js/estadistica.js
@@ -338,7 +365,8 @@ asistente-estadistico/
 │   ├── decisiones.test.js  Pruebas de js/decisiones.js
 │   ├── intervalos.test.js  Pruebas de los intervalos de una muestra
 │   ├── intervalos-dos-muestras.test.js  Pruebas de los intervalos de dos muestras
-│   └── pruebas.test.js  Pruebas de js/pruebas.js (pruebas de hipótesis)
+│   ├── pruebas.test.js  Pruebas de js/pruebas.js (pruebas de hipótesis)
+│   └── presentacion.test.js  Pruebas de js/presentacion.js (lo que se muestra)
 └── README.md
 ```
 
