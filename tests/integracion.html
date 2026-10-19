@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pruebas integrales</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; color: #222; background: #fff; }
+    .ok { color: #1b6e2a; }
+    .fallo { color: #b00020; font-weight: bold; }
+    iframe { width: 1000px; max-width: 100%; height: 600px; border: 1px solid #999; }
+    pre { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <!--
+    Pruebas integrales (Parte 11): recorren la página real (../index.html) dentro de un
+    iframe, como lo haría una persona. Ver tests/integracion.js.
+    Para abrirla en el navegador hace falta un servidor local (desde la carpeta del proyecto):
+      python -m http.server 8000   y abre   http://localhost:8000/tests/integracion.html
+  -->
+  <h1>Pruebas integrales</h1>
+  <p id="resumen">Ejecutando…</p>
+  <ul id="lista"></ul>
+  <!-- Texto plano que lee tests/integracion.test.js -->
+  <pre id="salida" hidden></pre>
+  <script src="integracion.js"></script>
+</body>
+</html>

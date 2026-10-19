@@ -4,15 +4,10 @@ Aplicación web sencilla para resolver ejercicios del segundo parcial de Estadí
 (intervalos de confianza y pruebas de hipótesis). Está hecha solo con HTML, CSS y
 JavaScript, sin dependencias ni paso de compilación.
 
-> Estado actual: interfaz para elegir el ejercicio (Parte 2), cálculo de
-> estadísticos descriptivos a partir de listas de datos (Parte 3), funciones
-> para obtener valores críticos de Z, t, chi-cuadrada y F (Parte 4),
-> identificación del método que corresponde al ejercicio (Parte 5) e
-> intervalos de confianza de una muestra: media, proporción y varianza (Parte 6)
-> e intervalos de dos muestras: diferencia de medias, diferencia de proporciones,
-> muestras pareadas y cociente de varianzas (Parte 7), criterios de decisión de
-> los intervalos (Parte 8), pruebas de hipótesis de esos mismos casos (Parte 9) y
-> una presentación uniforme del procedimiento y los resultados (Parte 10).
+> **Estado:** las 11 partes del plan están implementadas: interfaz, lectura de listas,
+> valores críticos, identificación del método, intervalos de confianza de una y dos
+> muestras, criterios de decisión, pruebas de hipótesis, presentación de resultados y
+> pruebas integrales. Ver «Métodos implementados» y «Limitaciones» más abajo.
 
 ## Cómo se usa la interfaz
 
@@ -37,6 +32,61 @@ muestra el **método identificado** con su distribución, grados de libertad y
 por qué corresponde, o explica qué dato falta o por qué no se puede decidir.
 En intervalos (una o dos muestras), además calcula y muestra el **intervalo de
 confianza** paso a paso, y en pruebas de hipótesis, la **prueba** completa (ver abajo).
+
+## Métodos implementados
+
+Solo se usan las distribuciones normal (Z), t de Student, chi-cuadrada y F. Cada
+método acepta **datos individuales** (listas) o **estadísticas resumidas**.
+
+| Caso | Intervalo de confianza | Prueba de hipótesis | Distribución |
+|---|---|---|---|
+| Una media, σ conocida o n ≥ 30 | Sí, y tamaño de muestra (con σ conocida) | Sí, H₀: μ = μ₀ | Z |
+| Una media, σ desconocida y n < 30 | Sí | Sí, H₀: μ = μ₀ | t, ν = n − 1 |
+| Una proporción | Sí, y tamaño de muestra | Sí, H₀: π = π₀ | Z |
+| Una varianza (y desviación estándar) | Sí, para σ² y para σ | Sí, H₀: σ² = σ₀² | chi-cuadrada, ν = n − 1 |
+| Dos medias, σ conocidas (o ambas n ≥ 30 con varianzas iguales) | Sí, con criterio de decisión | Sí, H₀: μ₁ − μ₂ = d₀ | Z |
+| Dos medias, σ desconocidas, varianzas iguales, ambas n < 30 | Sí, con criterio de decisión | Sí, H₀: μ₁ − μ₂ = d₀ | t, ν = n₁ + n₂ − 2 |
+| Dos medias, σ desconocidas, varianzas diferentes (no ambas n ≥ 30) | Sí, con criterio de decisión | Sí, H₀: μ₁ − μ₂ = d₀ | t, ν de Welch |
+| Dos proporciones | Sí, con criterio de decisión | Sí, solo H₀: π₁ = π₂ | Z |
+| Muestras pareadas | Sí, con criterio de decisión | Sí, H₀: μ_D = d₀ | t, ν = n − 1 |
+| Cociente de varianzas | Sí, con criterio de decisión | Sí, solo H₀: σ₁² = σ₂² | F, ν₁ = n₁ − 1, ν₂ = n₂ − 1 |
+
+Las pruebas de hipótesis admiten las tres alternativas (≠ dos colas, < cola
+izquierda, > cola derecha) y muestran valor crítico, región de rechazo y valor p. Cada método
+tiene al menos un caso numérico comparado con un ejemplo resuelto (Walpole) o con
+un cálculo de referencia (ver «Ejecutar las pruebas»).
+
+## Limitaciones
+
+Lo que la aplicación **no** hace o no puede confirmar:
+
+- **Solo los casos del formulario.** No hay otras pruebas (por ejemplo, la binomial
+  exacta, pruebas no paramétricas o de bondad de ajuste) ni otras distribuciones.
+- **Reglas pendientes de confirmar con el profesor** (la página lo indica en una nota):
+  - El formulario solo trae intervalos; las fórmulas de las **pruebas** son las usuales
+    del libro: en una proporción el error estándar usa π₀; en dos proporciones se usa
+    la proporción combinada; en χ² y F de dos colas el valor p es el doble de la cola
+    más pequeña.
+  - Dos proporciones y cociente de varianzas solo admiten la H₀ de igualdad.
+  - Dos medias con σ desconocidas **no se resuelven** (se explica por qué) si las
+    varianzas son iguales y una muestra es grande y la otra pequeña, o si son
+    diferentes y ambas son grandes: no corresponden a exactamente una fila del formulario.
+  - Criterios de decisión de intervalos: no hay criterio para una media, una
+    proporción ni una varianza, ni para un límite exactamente igual a 0 (o 1).
+- **Valores críticos calculados, no de tablas.** Se calculan numéricamente con todos
+  los decimales y los gl de Welch no se redondean; por eso pueden diferir de las
+  tablas del libro en el tercer o cuarto decimal.
+- **Tamaño de muestra** solo para una media (con σ conocida) y una proporción, que
+  son los que trae el formulario.
+- **Aproximación normal en proporciones:** si n·p o n·q < 5 se muestra una
+  advertencia, pero el cálculo se hace igual.
+- **Decimales en los campos numéricos:** usa punto (2.5). Algunos navegadores no
+  aceptan la coma en esos campos y el valor llega vacío, así que la página dice
+  «Falta …». En las listas sí se puede usar coma decimal separando con punto y coma.
+- **Sin guardado:** al recargar la página se pierden los datos.
+- **Teclado:** las pruebas automáticas revisan la estructura (etiquetas, orden
+  natural, foco visible), pero no simulan la navegación con Tab; conviene revisarla
+  a mano (ver «Verificar el sitio»).
 
 ## Identificación del método (`js/metodos.js`)
 
@@ -366,7 +416,10 @@ asistente-estadistico/
 │   ├── intervalos.test.js  Pruebas de los intervalos de una muestra
 │   ├── intervalos-dos-muestras.test.js  Pruebas de los intervalos de dos muestras
 │   ├── pruebas.test.js  Pruebas de js/pruebas.js (pruebas de hipótesis)
-│   └── presentacion.test.js  Pruebas de js/presentacion.js (lo que se muestra)
+│   ├── presentacion.test.js  Pruebas de js/presentacion.js (lo que se muestra)
+│   ├── integracion.html  Pruebas integrales: usa la página real en un iframe
+│   ├── integracion.js    Recorridos de las pruebas integrales
+│   └── integracion.test.js  Ejecuta integracion.html en Edge o Chrome sin ventana
 └── README.md
 ```
 
@@ -386,8 +439,19 @@ carpeta del proyecto:
 - Python: `python -m http.server 8000` y abre <http://localhost:8000>.
 - Node.js: `npx serve .` y abre la dirección que aparece en la terminal.
 
-Para comprobar que funciona, al elegir un caso y un formato deben aparecer sus
-campos, y la consola del navegador (F12) no debe tener errores.
+### Verificar el sitio
+
+1. Con el servidor local abierto, entra a <http://localhost:8000/tests/integracion.html>:
+   debe decir «36 pruebas, 0 fallos». (Esta página necesita el servidor local; abierta
+   como archivo, el navegador no la deja leer la aplicación.)
+2. En <http://localhost:8000> abre la consola (F12): no debe haber errores.
+3. **Teclado:** usa solo Tab, Shift+Tab, las flechas (para elegir opciones) y Enter.
+   Debe verse un contorno amarillo en el elemento enfocado y se debe poder llegar a
+   todos los campos, a «Revisar datos» y a «Reiniciar».
+4. **Móvil:** en las herramientas del navegador (F12 → icono de dispositivo) elige un
+   ancho de 360 px. No debe haber desplazamiento horizontal de la página; las tablas
+   anchas se desplazan dentro de su recuadro.
+5. Resuelve un caso típico y uno inválido (por ejemplo, una lista con `1, dos, 3`).
 
 ## Ejecutar las pruebas
 
@@ -398,21 +462,39 @@ sin instalar nada más. Desde la carpeta del proyecto:
 node --test
 ```
 
-Debe terminar con `fail 0`.
+Debe terminar con `fail 0`. Incluye dos tipos de pruebas:
+
+- **Unitarias** (`tests/*.test.js`): fórmulas, valores críticos, reglas de método,
+  criterios de decisión, pruebas de hipótesis y textos de los resultados. Los valores
+  esperados vienen de ejemplos de Walpole (capítulos 9 y 10) y de SciPy.
+- **Integrales** (`tests/integracion.html`): usan la página real como una persona
+  (eligen opciones, escriben datos y pulsan los botones) y recorren datos individuales
+  y resumidos, una y dos muestras, datos pareados, los 10 intervalos, las pruebas de
+  hipótesis con sus tres colas, el botón «Reiniciar», errores, etiquetas, ancho de
+  móvil (360 y 320 px) y errores de consola. `node --test` las ejecuta en Microsoft
+  Edge o Google Chrome sin abrir ventana (`tests/integracion.test.js`). Si no
+  encuentra ninguno, esa prueba aparece como **omitida**: ábrelas a mano en
+  <http://localhost:8000/tests/integracion.html> o indica la ruta del navegador con
+  la variable de entorno `NAVEGADOR`.
 
 ## Desplegar en Vercel
 
-El proyecto es un sitio estático, así que no necesita configuración especial
-(no hay `vercel.json` ni `package.json`).
+El proyecto es un sitio estático: `index.html` está en la raíz y no hay paso de
+compilación, así que **no necesita configuración** (no hay `vercel.json` ni
+`package.json`).
 
-1. Sube los cambios a GitHub (`git push`).
-2. Entra a <https://vercel.com> e inicia sesión con tu cuenta de GitHub.
-3. Elige **Add New… → Project** e importa el repositorio `asistente-estadistico`.
-4. En la configuración deja:
+1. Comprueba que todo pase: `node --test` debe terminar con `fail 0`.
+2. Sube los cambios a GitHub: `git push origin main`.
+3. Entra a <https://vercel.com> e inicia sesión con tu cuenta de GitHub.
+4. Elige **Add New… → Project** e importa el repositorio `asistente-estadistico`.
+5. En la configuración deja:
    - **Framework Preset:** Other
    - **Build Command:** vacío
    - **Output Directory:** vacío (la raíz del proyecto)
-5. Pulsa **Deploy**. Vercel te dará una URL pública.
+6. Pulsa **Deploy**. Vercel te dará una URL pública.
+7. Verifica el sitio publicado: abre la URL y resuelve un ejercicio; después abre
+   `<tu URL>/tests/integracion.html`, que debe decir «36 pruebas, 0 fallos».
 
 Cada vez que hagas `git push` a la rama `main`, Vercel volverá a publicar el sitio
-automáticamente.
+automáticamente. La carpeta `tests/` también se publica; no afecta a la aplicación y
+permite ejecutar las pruebas integrales sobre el sitio publicado.
