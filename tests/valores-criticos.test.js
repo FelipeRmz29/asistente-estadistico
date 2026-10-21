@@ -49,8 +49,26 @@ test("t: fórmulas exactas con 1 y 2 grados de libertad", function () {
   valorCercano(vc.valorCriticoT(0.95, 2), (2 * 0.95 - 1) / Math.sqrt(2 * 0.95 * 0.05));
 });
 
-test("t: acepta grados de libertad no enteros (Welch)", function () {
-  valorCercano(vc.valorCriticoT(0.975, 17.37), 2.1063973018286766);
+test("redondearGL: siempre hacia abajo al entero inferior", function () {
+  assert.equal(vc.redondearGL(23.9), 23);
+  assert.equal(vc.redondearGL(32.9), 32);
+  assert.equal(vc.redondearGL(17.1), 17);
+  assert.equal(vc.redondearGL(20), 20);
+  assert.equal(vc.redondearGL(1), 1);
+  assert.equal(vc.redondearGL(13.999999999999998), 14); // solo ruido de punto flotante
+  assert.equal(vc.redondearGL(13.9999), 13);
+});
+
+test("t, chi-cuadrada y F: los grados de libertad no enteros se redondean hacia abajo", function () {
+  const t = vc.valorCriticoT(0.975, 17.37);
+  valorCercano(t, vc.valorCriticoT(0.975, 17).valor); // tabla t₀.₀₂₅,₁₇ = 2.110
+  assert.equal(t.parametros, "gl = 17");
+  assert.equal(vc.valorCriticoT(0.975, 23.9).parametros, "gl = 23");
+  assert.equal(vc.valorCriticoT(0.975, 32.9).valor, vc.valorCriticoT(0.975, 32).valor);
+  assert.equal(vc.valorCriticoChi2(0.95, 9.9).valor, vc.valorCriticoChi2(0.95, 9).valor);
+  const f = vc.valorCriticoF(0.95, 5.9, 10.9);
+  assert.equal(f.valor, vc.valorCriticoF(0.95, 5, 10).valor);
+  assert.equal(f.parametros, "gl1 = 5 (numerador), gl2 = 10 (denominador)");
 });
 
 test("t: con muchos grados de libertad se acerca a Z", function () {

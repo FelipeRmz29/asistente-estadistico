@@ -10,6 +10,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const ph = require("../js/pruebas.js");
 const est = require("../js/estadistica.js");
+const vc = require("../js/valores-criticos.js");
 
 // Compara con 9 cifras de precisión.
 function cercano(real, esperado) {
@@ -188,14 +189,17 @@ test("dos medias con t y varianzas iguales: gl = n₁ + n₂ − 2 y d₀ ≠ 0"
   assert.doesNotMatch(r.conclusion, /es decir/);
 });
 
-test("dos medias con t y varianzas diferentes: gl de Welch (no entero), dos colas", function () {
+test("dos medias con t y varianzas diferentes: gl de Welch redondeado hacia abajo, dos colas", function () {
   // n₁ = 15, x̄₁ = 23.1, s₁ = 2.9; n₂ = 11, x̄₂ = 20.4, s₂ = 5.8; α = 0.05
   const r = sinError(ph.pruebaDosMediasTDiferentes(15, 23.1, 2.9, 11, 20.4, 5.8, 0, "dos-colas", 0.05));
-  cercano(r.gl, 13.67448168959504);
-  assert.equal(Number.isInteger(r.gl), false);
+  cercano(r.glWelch, 13.67448168959504);
+  assert.equal(r.gl, 13);                                          // ⌊13.67⌋, no 14
   cercano(r.estadistico, 1.4193142528587446);
-  cercano(r.criticos[1].critico.valor, 2.1495865042109537);
-  cercano(r.valorP, 0.17819941541673853);
+  cercano(r.criticos[1].critico.valor, 2.160368656462791);         // tabla: t_{0.025,13} = 2.160
+  assert.equal(r.criticos[1].critico.parametros, "gl = 13");
+  // El valor p también usa ν = 13: P(|T₁₃| ≥ 1.4193)
+  cercano(r.valorP, 2 * (1 - vc.cdfT(1.4193142528587446, 13)));
+  cercano(r.valorP, 0.17933864703230196);
   assert.equal(r.rechazar, false);
 });
 
@@ -293,6 +297,12 @@ test("rechazar H₀ coincide siempre con valor p < α", function () {
         for (const alfa of [0.01, 0.05, 0.1]) {
           const d = ph.decidirPrueba(x, dist, gl1, gl2, alternativa, alfa);
           assert.equal(d.rechazar, d.valorP < alfa, [dist, x, alternativa, alfa].join(" "));
+          if (gl1 === 13.67) {
+            // gl no entero: el valor crítico y el valor p usan ⌊13.67⌋ = 13.
+            const d13 = ph.decidirPrueba(x, dist, 13, null, alternativa, alfa);
+            assert.equal(d.valorP, d13.valorP);
+            assert.equal(d.criticos[0].critico.valor, d13.criticos[0].critico.valor);
+          }
         }
       }
     }

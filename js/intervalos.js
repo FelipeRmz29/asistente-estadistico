@@ -41,6 +41,7 @@ const valoresCriticos = typeof module !== "undefined"
     valorCriticoT: valorCriticoT,
     valorCriticoChi2: valorCriticoChi2,
     valorCriticoF: valorCriticoF,
+    redondearGL: redondearGL,
   };
 const MUESTRA_GRANDE = typeof module !== "undefined"
   ? require("./metodos.js").TAMANO_MUESTRA_GRANDE
@@ -343,9 +344,9 @@ function intervaloDosMediasTIguales(n1, media1, s1, n2, media2, s2, confianza) {
 }
 
 // Diferencia de dos medias con t, σ² desconocidas y suponiéndolas DIFERENTES
-// (grados de libertad de Welch, que normalmente no son un número entero).
+// (grados de libertad de Welch: glWelch es el valor de la fórmula y gl, el entero inferior).
 // Si las dos muestras son grandes (n ≥ 30), el formulario usa Z, no esta fórmula.
-// Devuelve { alfa, gl, varMedia1, varMedia2, critico, diferencia, errorEstandar, margen, inferior, superior }.
+// Devuelve { alfa, gl, glWelch, varMedia1, varMedia2, critico, diferencia, errorEstandar, margen, inferior, superior }.
 function intervaloDosMediasTDiferentes(n1, media1, s1, n2, media2, s2, confianza) {
   const error = revisarDatosDosMediasT(n1, media1, s1, n2, media2, s2, confianza);
   if (error) return { error: error };
@@ -358,7 +359,8 @@ function intervaloDosMediasTDiferentes(n1, media1, s1, n2, media2, s2, confianza
   const varMedia1 = s1 * s1 / n1;                                          // s₁²/n₁
   const varMedia2 = s2 * s2 / n2;                                          // s₂²/n₂
   const suma = varMedia1 + varMedia2;
-  const gl = suma * suma / (varMedia1 * varMedia1 / (n1 - 1) + varMedia2 * varMedia2 / (n2 - 1)); // ν
+  const glWelch = suma * suma / (varMedia1 * varMedia1 / (n1 - 1) + varMedia2 * varMedia2 / (n2 - 1)); // ν
+  const gl = valoresCriticos.redondearGL(glWelch);                         // ν redondeado hacia abajo
   const critico = valoresCriticos.valorCriticoT(1 - alfa / 2, gl);         // t_{α/2,ν}
   if (critico.error) return { error: "No se pudo obtener el valor crítico: " + critico.error };
 
@@ -368,6 +370,7 @@ function intervaloDosMediasTDiferentes(n1, media1, s1, n2, media2, s2, confianza
   return {
     alfa: alfa,
     gl: gl,
+    glWelch: glWelch,
     varMedia1: varMedia1,
     varMedia2: varMedia2,
     critico: critico,

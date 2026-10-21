@@ -200,8 +200,17 @@ function validarProbabilidad(p) {
   return null;
 }
 
+// Los grados de libertad siempre se redondean hacia abajo al entero inferior
+// (por ejemplo, los gl de Welch: 23.9 → 23). Un entero no cambia. Lo que no es
+// número (o null) se devuelve igual para que validarGL lo rechace.
+// La tolerancia de 1e-9 solo corrige el error de punto flotante: Welch con n₁ = n₂
+// y s₁ = s₂ debe dar exactamente 14, pero el cálculo da 13.999999999999998.
+const TOLERANCIA_GL = 1e-9;
+function redondearGL(gl) {
+  return typeof gl === "number" ? Math.floor(gl + TOLERANCIA_GL) : gl;
+}
+
 // Devuelve un mensaje de error, o null si los grados de libertad son válidos.
-// Se aceptan valores no enteros (por ejemplo, los gl de Welch para varianzas diferentes).
 function validarGL(gl, nombre) {
   if (typeof gl !== "number" || !(gl >= GL_MINIMO && gl <= GL_MAXIMO)) {
     return "Los grados de libertad " + nombre + " deben ser un número entre " + GL_MINIMO +
@@ -241,8 +250,9 @@ function valorCriticoZ(p) {
   return armarResultado("normal estándar Z", "", p, buscarValorCritico(cdfNormal, p, false));
 }
 
-// t de Student: t tal que P(T ≤ t) = p con gl grados de libertad.
+// t de Student: t tal que P(T ≤ t) = p con gl grados de libertad (gl se redondea hacia abajo).
 function valorCriticoT(p, gl) {
+  gl = redondearGL(gl);
   const error = validarProbabilidad(p) || validarGL(gl, "(gl)");
   if (error) return { error: error };
   const valor = buscarValorCritico(function (t) { return cdfT(t, gl); }, p, false);
@@ -251,6 +261,7 @@ function valorCriticoT(p, gl) {
 
 // Chi-cuadrada: χ² tal que P(X ≤ χ²) = p con gl grados de libertad.
 function valorCriticoChi2(p, gl) {
+  gl = redondearGL(gl);
   const error = validarProbabilidad(p) || validarGL(gl, "(gl)");
   if (error) return { error: error };
   const valor = buscarValorCritico(function (x) { return cdfChi2(x, gl); }, p, true);
@@ -259,6 +270,8 @@ function valorCriticoChi2(p, gl) {
 
 // F: f tal que P(F ≤ f) = p con gl1 (numerador) y gl2 (denominador).
 function valorCriticoF(p, gl1, gl2) {
+  gl1 = redondearGL(gl1);
+  gl2 = redondearGL(gl2);
   const error = validarProbabilidad(p) || validarGL(gl1, "del numerador (gl1)") ||
     validarGL(gl2, "del denominador (gl2)");
   if (error) return { error: error };
@@ -273,6 +286,7 @@ if (typeof module !== "undefined") {
     cdfT,
     cdfChi2,
     cdfF,
+    redondearGL,
     valorCriticoZ,
     valorCriticoT,
     valorCriticoChi2,

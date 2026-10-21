@@ -179,7 +179,7 @@ function metodoDosMedias(datos) {
   }
   return identificado("dos-medias-t-diferentes", datos.tipo,
     "la diferencia de dos medias (μ₁ − μ₂) con varianzas desconocidas y diferentes",
-    "t de Student", "fórmula de Welch (se calcula con s₁, s₂, n₁ y n₂; puede no ser entero)",
+    "t de Student", "fórmula de Welch (se calcula con s₁, s₂, n₁ y n₂ y se redondea hacia abajo al entero inferior)",
     "σ₁ y σ₂ son desconocidas y el enunciado supone varianzas diferentes (" + textoTamanos + "); " +
     "se usa t con los grados de libertad de Welch.");
 }

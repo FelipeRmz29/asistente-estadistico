@@ -133,7 +133,7 @@ test("dos medias, varianzas iguales: tamaños mixtos no se deciden por defecto",
 
 test("dos medias, varianzas diferentes: -> t con gl de Welch si no son ambas grandes", function () {
   esMetodo(identificar("dos-medias", "desconocida", "diferentes", [10, 12]), "t de Student",
-    "fórmula de Welch (se calcula con s₁, s₂, n₁ y n₂; puede no ser entero)");
+    "fórmula de Welch (se calcula con s₁, s₂, n₁ y n₂ y se redondea hacia abajo al entero inferior)");
   assert.equal(identificar("dos-medias", "desconocida", "diferentes", [29, 29]).estado, "identificado");
   assert.equal(identificar("dos-medias", "desconocida", "diferentes", [29, 30]).estado, "identificado");
 });

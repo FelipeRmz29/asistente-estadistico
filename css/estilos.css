@@ -1,5 +1,21 @@
 /* Estilos generales del sitio */
 
+/* Colores inspirados en las Chivas: rojo y blanco, con azul oscuro como secundario.
+   Todos cumplen contraste AA sobre blanco (rojo 5.9:1, azul 15.4:1). */
+:root {
+  --rojo: #c8102e;
+  --rojo-oscuro: #9e0c24;
+  --rojo-claro: #fdecee;
+  --azul: #0b2545;
+  --texto: #222;
+  --texto-suave: #555;
+  --fondo: #f5f3f3;
+  --borde: #d9d4d4;
+  --borde-campo: #8c8585;
+  --encabezado-tabla: #f3eeee;
+  --error: #b00020;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -8,15 +24,16 @@ body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.5;
-  color: #222;
-  background-color: #f4f6f8;
+  color: var(--texto);
+  background-color: var(--fondo);
 }
 
 .encabezado {
   padding: 24px 16px;
   text-align: center;
   color: #fff;
-  background-color: #1f4e79;
+  background-color: var(--rojo);
+  border-bottom: 4px solid var(--azul);
 }
 
 .encabezado h1 {
@@ -37,19 +54,20 @@ body {
 .tarjeta {
   padding: 20px;
   background-color: #fff;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--borde);
   border-radius: 8px;
 }
 
 .tarjeta h2 {
   margin-top: 0;
+  color: var(--rojo);
 }
 
 .pie {
   padding: 16px;
   text-align: center;
   font-size: 0.9em;
-  color: #555;
+  color: var(--texto-suave);
 }
 
 /* ---------- Formulario del ejercicio (Parte 2) ---------- */
@@ -68,13 +86,14 @@ fieldset {
   min-width: 0; /* evita que el fieldset se desborde en pantallas angostas */
   margin: 0 0 16px;
   padding: 12px 16px;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--borde);
   border-radius: 6px;
 }
 
 legend {
   padding: 0 4px;
   font-weight: bold;
+  color: var(--azul);
 }
 
 .campo {
@@ -93,7 +112,7 @@ textarea {
   width: 100%;
   padding: 8px;
   font: inherit;
-  border: 1px solid #8c959f;
+  border: 1px solid var(--borde-campo);
   border-radius: 4px;
   background-color: #fff;
 }
@@ -120,12 +139,13 @@ textarea {
   width: 18px;
   height: 18px;
   margin: 0;
+  accent-color: var(--rojo);
 }
 
 .ayuda {
   margin: 4px 0 8px;
   font-size: 0.9em;
-  color: #555;
+  color: var(--texto-suave);
 }
 
 /* Contorno visible al navegar con teclado */
@@ -133,7 +153,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 button:focus-visible {
-  outline: 3px solid #f0a500;
+  outline: 3px solid var(--azul);
   outline-offset: 2px;
 }
 
@@ -153,27 +173,27 @@ button {
   font: inherit;
   font-weight: bold;
   color: #fff;
-  background-color: #1f4e79;
+  background-color: var(--rojo);
   border: none;
   border-radius: 6px;
   cursor: pointer;
 }
 
 button:hover {
-  background-color: #163a5a;
+  background-color: var(--rojo-oscuro);
 }
 
 /* Botón secundario (Reiniciar): mismo tamaño, pero con fondo blanco */
 button.secundario {
   margin-left: 8px;
-  color: #1f4e79;
+  color: var(--rojo);
   background-color: #fff;
-  border: 2px solid #1f4e79;
+  border: 2px solid var(--rojo);
   padding: 8px 18px; /* 2px menos por el borde, para que mida lo mismo */
 }
 
 button.secundario:hover {
-  background-color: #e8eef5;
+  background-color: var(--rojo-claro);
 }
 
 #estado {
@@ -188,12 +208,12 @@ button.secundario:hover {
 }
 
 #estado.error {
-  color: #b00020;
+  color: var(--error);
 }
 
 /* Campo con datos que hay que corregir */
 textarea[aria-invalid="true"] {
-  border: 2px solid #b00020;
+  border: 2px solid var(--error);
 }
 
 #resultados,
@@ -209,7 +229,7 @@ textarea[aria-invalid="true"] {
 
 /* Aviso cuando no se puede determinar el método */
 #metodo .no-determinado {
-  color: #b00020;
+  color: var(--error);
 }
 
 /* ---------- Intervalo de confianza (Parte 6) y prueba de hipótesis (Parte 9) ---------- */
@@ -250,7 +270,7 @@ textarea[aria-invalid="true"] {
 /* Advertencias sobre los supuestos o el resultado */
 #intervalo .aviso,
 #prueba .aviso {
-  color: #b00020;
+  color: var(--error);
 }
 
 #resultados h3 {
@@ -277,9 +297,10 @@ th,
 td {
   padding: 6px 8px;
   text-align: left;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--borde);
 }
 
 th {
-  background-color: #eef2f6;
+  color: var(--azul);
+  background-color: var(--encabezado-tabla);
 }

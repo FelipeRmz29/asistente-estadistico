@@ -243,7 +243,8 @@ function todasLasPruebas() {
     escribir({ "nivel-confianza": "95", "dm1-n": "15", "dm1-xbarra": "3.84", "dm1-s": "3.07",
       "dm2-n": "12", "dm2-xbarra": "1.49", "dm2-s": "0.80" });
     revisar();
-    cerca(ultimoValor(fila("intervalo", "Grados de libertad (Welch)")[2]), 16.33, 0.01, "gl de Welch"); // libro: ≈ 16
+    contiene(fila("intervalo", "Grados de libertad (Welch)")[2], "= 16.3278", "gl de Welch sin redondear");
+    igual(ultimoValor(fila("intervalo", "Grados de libertad (Welch)")[2]), 16, "gl de Welch redondeados hacia abajo"); // libro: ≈ 16
     intervaloCerca(destacados("intervalo")[0], 0.60, 4.10, 0.01);
   });
 
@@ -361,9 +362,10 @@ function todasLasPruebas() {
     escribir({ "nivel-significancia": "0.05", "dm1-n": "15", "dm1-xbarra": "23.1", "dm1-s": "2.9",
       "dm2-n": "11", "dm2-xbarra": "20.4", "dm2-s": "5.8", "h0-valor": "0" });
     revisar();
-    // A mano: t = 2.7 / √(2.9²/15 + 5.8²/11) = 1.419; ν (Welch) = 13.67
+    // A mano: t = 2.7 / √(2.9²/15 + 5.8²/11) = 1.419; ν (Welch) = 13.67 → ⌊13.67⌋ = 13
     cerca(ultimoValor(fila("prueba", "Estadístico de prueba")[2]), 1.419, 0.001, "t");
-    contiene(fila("prueba", "Distribución de referencia")[1], "ν = 13.67", "gl de Welch");
+    igual(fila("prueba", "Distribución de referencia")[1], "t de Student, ν = 13", "gl de Welch redondeados hacia abajo");
+    igual(ultimoValor(fila("prueba", "Grados de libertad (Welch)")[2]), 13, "gl de Welch en el procedimiento");
     igual(destacados("prueba")[0], "Decisión: no se rechaza H₀", "decisión");
   });
 

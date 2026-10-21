@@ -320,7 +320,8 @@ function presentarDosMediasTDiferentes(r, n1, media1, s1, n2, media2, s2, confia
       ["Varianza de x̄₂", "s₂² / n₂", formatear(s2) + "² / " + n2 + " = " + formatear(r.varMedia2)],
       ["Grados de libertad (Welch)", "ν = (s₁²/n₁ + s₂²/n₂)² / [(s₁²/n₁)² / (n₁ − 1) + (s₂²/n₂)² / (n₂ − 1)]",
         "ν = (" + formatear(r.varMedia1) + " + " + formatear(r.varMedia2) + ")² / [" + formatear(r.varMedia1) + "² / " +
-          (n1 - 1) + " + " + formatear(r.varMedia2) + "² / " + (n2 - 1) + "] = " + formatear(r.gl)],
+          (n1 - 1) + " + " + formatear(r.varMedia2) + "² / " + (n2 - 1) + "] = " + formatear(r.glWelch) +
+          " → ν = ⌊" + formatear(r.glWelch) + "⌋ = " + r.gl],
       ["Margen de error", "e = t_α/2,ν · √(s₁²/n₁ + s₂²/n₂)",
         "e = " + formatear(r.critico.valor) + " · " + formatear(r.errorEstandar) + " = " + formatear(r.margen)],
     ].concat(pasosLimites("(x̄₁ − x̄₂)", r.diferencia, r)),
@@ -328,8 +329,8 @@ function presentarDosMediasTDiferentes(r, n1, media1, s1, n2, media2, s2, confia
     interpretacion: interpretar(confianza, "la diferencia de medias poblacionales", "μ₁ − μ₂", r),
     decision: herramientas.decidirIntervalo("dos-medias-t-diferentes", r.inferior, r.superior),
     notas: [
-      "Supone varianzas poblacionales diferentes y poblaciones aproximadamente normales. ν (Welch) no es entero " +
-        "y se usa con todos sus decimales; con tablas y ν redondeado, el valor crítico cambia un poco.",
+      "Supone varianzas poblacionales diferentes y poblaciones aproximadamente normales. ν (Welch) se redondea " +
+        "hacia abajo al entero inferior y ese entero se usa para el valor crítico.",
       NOTA_INDEPENDIENTES,
     ],
     advertencias: [],
@@ -529,11 +530,13 @@ function presentarPrueba(clave, r, d) {
         ["Varianza de x̄₂", "s₂² / n₂", f(d.s2) + "² / " + d.n2 + " = " + f(r.varMedia2)],
         ["Grados de libertad (Welch)", "ν = (s₁²/n₁ + s₂²/n₂)² / [(s₁²/n₁)² / (n₁ − 1) + (s₂²/n₂)² / (n₂ − 1)]",
           "ν = (" + f(r.varMedia1) + " + " + f(r.varMedia2) + ")² / [" + f(r.varMedia1) + "² / " + (d.n1 - 1) +
-            " + " + f(r.varMedia2) + "² / " + (d.n2 - 1) + "] = " + f(r.gl)],
+            " + " + f(r.varMedia2) + "² / " + (d.n2 - 1) + "] = " + f(r.glWelch) +
+            " → ν = ⌊" + f(r.glWelch) + "⌋ = " + r.gl],
         ["Error estándar", formulaEE, "√(" + f(r.varMedia1) + " + " + f(r.varMedia2) + ") = " + f(r.errorEstandar)]
       );
       notas.push("Esta fórmula supone varianzas poblacionales diferentes y poblaciones aproximadamente normales. " +
-        "Los grados de libertad (Welch) no son un número entero y se usan con todos sus decimales.");
+        "Los grados de libertad (Welch) se redondean hacia abajo al entero inferior y ese entero se usa para el " +
+        "valor crítico y el valor p.");
     } else {
       formulaEE = "√(" + s + "₁²/n₁ + " + s + "₂²/n₂)";
       pasos.push(["Error estándar", formulaEE,

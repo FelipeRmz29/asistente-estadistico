@@ -87,20 +87,21 @@ test("t con varianzas iguales: solo con muestras pequeñas", function () {
 
 // ---------- Dos medias con t, varianzas diferentes ----------
 
-test("dos medias con t y varianzas diferentes (gl de Welch, no enteros)", function () {
+test("dos medias con t y varianzas diferentes (gl de Welch redondeados hacia abajo)", function () {
   // Mismos datos que arriba, pero sin suponer varianzas iguales
   const r = sinError(ic.intervaloDosMediasTDiferentes(12, 85, 4, 10, 81, 5, 90));
   cercano(r.varMedia1, 16 / 12);
   cercano(r.varMedia2, 25 / 10);
   // ν = (16/12 + 25/10)² / [(16/12)²/11 + (25/10)²/9]
   const nu = Math.pow(16 / 12 + 25 / 10, 2) / (Math.pow(16 / 12, 2) / 11 + Math.pow(25 / 10, 2) / 9);
-  cercano(r.gl, nu);
-  aproximado(r.gl, 17.1652, 1e-4);
-  assert.ok(!Number.isInteger(r.gl));
-  aproximado(r.critico.valor, 1.7386, 1e-4);                       // entre t_{0.05,17} = 1.740 y t_{0.05,18} = 1.734
+  cercano(r.glWelch, nu);
+  aproximado(r.glWelch, 17.1652, 1e-4);
+  assert.equal(r.gl, 17);                                          // ⌊17.1652⌋, no 17.17 ni 18
+  assert.equal(r.critico.parametros, "gl = 17");
+  aproximado(r.critico.valor, 1.7396, 1e-4);                       // tabla: t_{0.05,17} = 1.740
   cercano(r.errorEstandar, Math.sqrt(16 / 12 + 25 / 10));
-  aproximado(r.inferior, 0.5959, 1e-4);
-  aproximado(r.superior, 7.4041, 1e-4);
+  aproximado(r.inferior, 0.5940, 1e-4);
+  aproximado(r.superior, 7.4060, 1e-4);
 });
 
 test("Welch coincide con la varianza combinada si n₁ = n₂ y s₁ = s₂", function () {

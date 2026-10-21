@@ -45,6 +45,7 @@ const distribuciones = typeof module !== "undefined"
     valorCriticoT: valorCriticoT,
     valorCriticoChi2: valorCriticoChi2,
     valorCriticoF: valorCriticoF,
+    redondearGL: redondearGL,
   };
 // Validaciones de js/intervalos.js que también sirven aquí.
 const revisiones = typeof module !== "undefined"
@@ -225,12 +226,13 @@ function pruebaDosMediasTDiferentes(n1, media1, s1, n2, media2, s2, d0, alternat
   const varMedia1 = s1 * s1 / n1;                                           // s₁²/n₁
   const varMedia2 = s2 * s2 / n2;                                           // s₂²/n₂
   const suma = varMedia1 + varMedia2;
-  const gl = suma * suma / (varMedia1 * varMedia1 / (n1 - 1) + varMedia2 * varMedia2 / (n2 - 1)); // ν de Welch
+  const glWelch = suma * suma / (varMedia1 * varMedia1 / (n1 - 1) + varMedia2 * varMedia2 / (n2 - 1)); // ν de Welch
+  const gl = distribuciones.redondearGL(glWelch);                           // ν redondeado hacia abajo
   const diferencia = media1 - media2;
   const errorEstandar = Math.sqrt(suma);                                    // √(s₁²/n₁ + s₂²/n₂)
   const estadistico = (diferencia - d0) / errorEstandar;                    // t
   return terminarPrueba({
-    gl: gl, varMedia1: varMedia1, varMedia2: varMedia2, diferencia: diferencia,
+    gl: gl, glWelch: glWelch, varMedia1: varMedia1, varMedia2: varMedia2, diferencia: diferencia,
     errorEstandar: errorEstandar, estadistico: estadistico,
   }, "t", gl, null, parametroDosMedias(d0), alternativa, alfa);
 }
@@ -312,8 +314,11 @@ function pruebaCocienteVarianzas(n1, desv1, varianza1, n2, desv2, varianza2, alt
 
 // Valores críticos, región de rechazo, valor p y decisión.
 // distribucion: "z", "t", "chi2" o "f"; gl1 y gl2 son null si no se usan.
+// Los gl se redondean hacia abajo aquí para que el valor crítico y el valor p usen el mismo entero.
 // Devuelve { area, criticos: [{ lado, critico }], rechazar, colaIzquierda, colaDerecha, valorP } o { error }.
 function decidirPrueba(estadistico, distribucion, gl1, gl2, alternativa, alfa) {
+  gl1 = distribuciones.redondearGL(gl1);
+  gl2 = distribuciones.redondearGL(gl2);
   if (!Number.isFinite(estadistico)) {
     return { error: "No se pudo calcular el estadístico de prueba (se obtuvo " + estadistico + ")." };
   }

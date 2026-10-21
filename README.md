@@ -74,8 +74,10 @@ Lo que la aplicación **no** hace o no puede confirmar:
   - Criterios de decisión de intervalos: no hay criterio para una media, una
     proporción ni una varianza, ni para un límite exactamente igual a 0 (o 1).
 - **Valores críticos calculados, no de tablas.** Se calculan numéricamente con todos
-  los decimales y los gl de Welch no se redondean; por eso pueden diferir de las
-  tablas del libro en el tercer o cuarto decimal.
+  los decimales; por eso pueden diferir de las tablas del libro en el tercer o cuarto
+  decimal. Los grados de libertad siempre se redondean hacia abajo al entero inferior
+  (incluidos los de Welch: 23.9 → 23) y ese entero se usa para mostrarlos, para el
+  valor crítico y para el valor p.
 - **Tamaño de muestra** solo para una media (con σ conocida) y una proporción, que
   son los que trae el formulario.
 - **Aproximación normal en proporciones:** si n·p o n·q < 5 se muestra una
@@ -175,7 +177,7 @@ muestras **independientes**):
 |---|---|---|
 | Dos medias, σ² conocidas (o n₁ y n₂ ≥ 30 con s₁ y s₂) | e = z_α/2 · √(σ₁²/n₁ + σ₂²/n₂) | — |
 | Dos medias, σ² desconocidas e **iguales** (n < 30) | e = t_α/2,ν · Sp · √(1/n₁ + 1/n₂), Sp = √(((n₁−1)s₁² + (n₂−1)s₂²) / (n₁+n₂−2)) | ν = n₁ + n₂ − 2 |
-| Dos medias, σ² desconocidas y **diferentes** | e = t_α/2,ν · √(s₁²/n₁ + s₂²/n₂) | ν de Welch (no entero) |
+| Dos medias, σ² desconocidas y **diferentes** | e = t_α/2,ν · √(s₁²/n₁ + s₂²/n₂) | ν de Welch, redondeado hacia abajo |
 | Dos proporciones | e = z_α/2 · √(p₁q₁/n₁ + p₂q₂/n₂) | — |
 | Muestras pareadas | e = t_α/2,ν · s_d / √n, sobre d = muestra 1 − muestra 2 | ν = n − 1 |
 | Cociente de varianzas | (S₁²/S₂²)·1/F_α/2(ν₁,ν₂) ≤ σ₁²/σ₂² ≤ (S₁²/S₂²)·F_α/2(ν₂,ν₁); no tiene e | ν₁ = n₁ − 1, ν₂ = n₂ − 1 |
@@ -376,8 +378,8 @@ derecha = 0.025". Si algo no es válido devuelve `{ error: "mensaje" }`.
 **Rango admitido** (fuera de él se devuelve un error, no un valor):
 
 - Probabilidad entre 0.000001 y 0.999999.
-- Grados de libertad entre 1 y 1 000 000. Se aceptan valores no enteros (por
-  ejemplo, los gl de Welch para dos medias con varianzas diferentes).
+- Grados de libertad entre 1 y 1 000 000. Un valor no entero se redondea hacia
+  abajo al entero inferior antes de consultar (17.37 → 17).
 - Si un cálculo interno no converge, también se devuelve un error.
 
 **Precisión y redondeo:** el valor crítico se devuelve con todos los decimales
