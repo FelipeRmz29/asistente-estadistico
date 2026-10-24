@@ -23,21 +23,9 @@
   </header>
 
   <main class="contenido">
-    <!--
-      Cómo se muestran los campos:
-      Los bloques con la clase "condicional" solo se ven cuando las opciones
-      elegidas coinciden con sus atributos data-*. Por ejemplo,
-      data-caso="una-media" data-formato="resumen" significa:
-      "mostrar solo si el caso es una media Y el formato es estadísticas resumidas".
-      Si un atributo tiene varios valores separados por espacio, basta con que coincida uno.
-      El caso y σ salen de las tarjetas del paso 1 (js/selector.js).
-      La lógica está en js/app.js.
-    -->
+
     <form id="formulario-ejercicio" novalidate>
 
-      <!-- 1. Características del ejercicio: tarjetas que se eligen y se quitan con un clic.
-           Cada pregunta (data-pregunta) solo se ve cuando tiene sentido con lo ya elegido;
-           las reglas están en js/selector.js y el método lo elige js/metodos.js. -->
       <section class="tarjeta" id="selector">
         <h2>1. ¿Qué datos tiene el ejercicio?</h2>
         <p class="ayuda">Toca una tarjeta para elegirla y tócala otra vez para quitarla. Solo aparecen las opciones que corresponden a lo que ya elegiste.</p>
@@ -130,13 +118,11 @@
           </div>
         </div>
 
-        <!-- Método según lo elegido; se actualiza solo (js/app.js). -->
         <div id="vista-metodo" class="vista-metodo" role="status" aria-live="polite"></div>
 
         <button type="button" id="boton-limpiar-seleccion" class="secundario">Limpiar selección</button>
       </section>
 
-      <!-- 2. Nivel de confianza o de significancia -->
       <section class="tarjeta">
         <h2>2. Nivel de confianza o de significancia</h2>
 
@@ -157,7 +143,6 @@
         </div>
       </section>
 
-      <!-- 3. Formato de los datos -->
       <section class="tarjeta">
         <h2>3. ¿Cómo vienen los datos?</h2>
 
@@ -174,7 +159,6 @@
         </fieldset>
       </section>
 
-      <!-- 4. Datos del ejercicio -->
       <section class="tarjeta">
         <h2>4. Datos del ejercicio</h2>
 
@@ -520,7 +504,6 @@
           <p class="ayuda condicional" data-caso="dos-proporciones">H₀: π₁ = π₂ (es decir, π₁ − π₂ = 0). Solo se admite esta hipótesis nula.</p>
           <p class="ayuda condicional" data-caso="cociente-varianzas">H₀: σ₁² = σ₂² (es decir, σ₁² / σ₂² = 1). Solo se admite esta hipótesis nula.</p>
 
-          <!-- El símbolo cambia según el caso; el value de cada opción (la cola) no cambia. -->
           <fieldset class="opciones" aria-describedby="ayuda-alternativa">
             <legend>Hipótesis alternativa (H₁) y tipo de prueba</legend>
             <p class="ayuda" id="ayuda-alternativa">
@@ -574,7 +557,7 @@
 
       <div class="acciones">
         <button type="submit">Revisar datos</button>
-        <!-- type="button": no envía el formulario -->
+
         <button type="button" id="boton-reiniciar" class="secundario">Reiniciar</button>
         <p id="estado" role="status" aria-live="polite"></p>
       </div>
@@ -605,7 +588,6 @@
       <div id="contenido-prueba"></div>
     </section>
 
-    <!-- Regla de redondeo (Parte 10): una sola vez, debajo de los resultados -->
     <p id="nota-redondeo" class="ayuda" hidden></p>
   </main>
 

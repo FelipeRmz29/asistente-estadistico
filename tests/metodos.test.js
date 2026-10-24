@@ -1,16 +1,13 @@
 // Pruebas de js/metodos.js con el ejecutor de pruebas incluido en Node.
-// Ejecutar desde la carpeta del proyecto:  node --test
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { identificarMetodo, TAMANO_MUESTRA_GRANDE } = require("../js/metodos.js");
 
-// Atajo: identifica el método de un intervalo con los datos indicados.
 function identificar(caso, sigma, varianzas, tamanos, tipo = "intervalo") {
   return identificarMetodo({ tipo: tipo, caso: caso, sigma: sigma, varianzas: varianzas, tamanos: tamanos });
 }
 
-// Comprueba que se identificó un método con la distribución y gl esperados.
 function esMetodo(resultado, distribucion, gradosLibertad) {
   assert.equal(resultado.estado, "identificado", resultado.mensaje);
   assert.equal(resultado.distribucion, distribucion);
@@ -18,7 +15,6 @@ function esMetodo(resultado, distribucion, gradosLibertad) {
   assert.ok(resultado.explicacion.length > 0);
 }
 
-// Comprueba el estado y que el mensaje contenga el texto indicado.
 function esEstado(resultado, estado, texto) {
   assert.equal(resultado.estado, estado);
   assert.equal(resultado.metodo, undefined, "no debe elegir un método");
@@ -47,15 +43,12 @@ test("el nombre del método indica si es intervalo o prueba", function () {
 
 // ---------- Una media ----------
 
-// Formulario: Z si "n ≥ 30 o σ² conocida"; t si "n < 30 y σ² desconocida".
-
 test("una media: σ conocida -> Z con cualquier tamaño", function () {
   for (const n of [1, 29, 30, 31, 200]) {
     const r = identificar("una-media", "conocida", "", [n]);
     esMetodo(r, "normal estándar Z", null);
     assert.equal(r.clave, "media-z");
   }
-  // El tamaño no hace falta para decidir si σ es conocida.
   esMetodo(identificar("una-media", "conocida", "", [null]), "normal estándar Z", null);
 });
 
@@ -84,7 +77,6 @@ test("una media: con n = 1 y σ desconocida no se puede estimar σ", function ()
 });
 
 test("una media: pide si σ es conocida y no supone que s sea σ", function () {
-  // Aunque haya datos (y por tanto s), sin la respuesta del usuario no se elige método.
   const r = identificar("una-media", "", "", [40]);
   esEstado(r, "falta-dato", /desviación estándar poblacional σ/);
   assert.match(r.mensaje, /\(s\) no es σ/);
@@ -161,7 +153,7 @@ test("proporciones -> Z", function () {
 
 test("una varianza -> chi-cuadrada con n − 1 gl", function () {
   esMetodo(identificar("una-varianza", "", "", [10]), "chi-cuadrada", "n − 1 = 9");
-  esMetodo(identificar("una-varianza", "", "", [null]), "chi-cuadrada", "n − 1"); // n aún no escrito
+  esMetodo(identificar("una-varianza", "", "", [null]), "chi-cuadrada", "n − 1");
 });
 
 test("cociente de varianzas -> F con n₁ − 1 y n₂ − 1 gl", function () {
@@ -176,9 +168,7 @@ test("muestras pareadas -> t con n − 1 gl sobre las diferencias", function () 
 });
 
 test("las opciones que no corresponden al caso se ignoran", function () {
-  // σ y varianzas solo se usan en una media y dos medias.
   esMetodo(identificar("una-proporcion", "conocida", "iguales", [100]), "normal estándar Z", null);
   esMetodo(identificar("pareadas", "conocida", "diferentes", [8, 8]), "t de Student", "n − 1 = 7");
-  // En una media no importa lo que se haya elegido sobre las varianzas.
   esMetodo(identificar("una-media", "desconocida", "diferentes", [12]), "t de Student", "n − 1 = 11");
 });

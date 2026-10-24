@@ -1,10 +1,4 @@
 // Pruebas de js/pruebas.js (pruebas de hipótesis, Parte 9).
-// Ejecutar desde la carpeta del proyecto:  node --test
-//
-// Los valores esperados (estadístico, valor p y valores críticos) se calcularon aparte
-// con SciPy (scipy.stats: norm, t, chi2 y f) a partir de las mismas fórmulas; varios
-// ejercicios son los ejemplos clásicos de Walpole (por ejemplo, n = 100, x̄ = 71.8,
-// σ = 8.9, H₀: μ = 70 da z = 2.02 y valor p = 0.0216).
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -12,7 +6,6 @@ const ph = require("../js/pruebas.js");
 const est = require("../js/estadistica.js");
 const vc = require("../js/valores-criticos.js");
 
-// Compara con 9 cifras de precisión.
 function cercano(real, esperado) {
   assert.ok(Math.abs(real - esperado) < 1e-9 * Math.max(1, Math.abs(esperado)),
     real + " debería ser " + esperado);
@@ -30,14 +23,13 @@ function valoresCriticos(r) {
 // ---------- Una media ----------
 
 test("una media, Z con σ conocida, cola derecha: se rechaza H₀", function () {
-  // n = 100, x̄ = 71.8, σ = 8.9; H₀: μ = 70, H₁: μ > 70, α = 0.05
   const r = sinError(ph.pruebaMediaZ(100, 71.8, 8.9, true, 70, "derecha", 0.05));
   cercano(r.errorEstandar, 0.89);
   cercano(r.estadistico, 2.0224719101123565);
   assert.equal(r.distribucion, "z");
   assert.equal(r.criticos.length, 1);
   assert.equal(r.criticos[0].lado, "superior");
-  cercano(r.criticos[0].critico.valor, 1.6448536269514722);   // z_0.05
+  cercano(r.criticos[0].critico.valor, 1.6448536269514722);
   cercano(r.criticos[0].critico.areaDerecha, 0.05);
   cercano(r.valorP, 0.021563811339088888);
   assert.equal(r.rechazar, true);
@@ -47,25 +39,24 @@ test("una media, Z con σ conocida, cola derecha: se rechaza H₀", function () 
 });
 
 test("el mismo estadístico, decisiones a ambos lados de α y con las tres colas", function () {
-  // z = 2.0225: valor p de una cola 0.0216, de dos colas 0.0431.
   const derecha01 = sinError(ph.pruebaMediaZ(100, 71.8, 8.9, true, 70, "derecha", 0.01));
-  assert.equal(derecha01.rechazar, false);                    // 0.0216 > 0.01
+  assert.equal(derecha01.rechazar, false);
   cercano(derecha01.criticos[0].critico.valor, 2.3263478740408408);
   assert.match(derecha01.conclusion, /^No se rechaza H₀/);
   assert.match(derecha01.conclusion, /no demuestra que H₀ sea cierta/);
 
   const dos05 = sinError(ph.pruebaMediaZ(100, 71.8, 8.9, true, 70, "dos-colas", 0.05));
   cercano(dos05.valorP, 2 * 0.021563811339088888);
-  assert.equal(dos05.rechazar, true);                         // |2.02| > 1.96
+  assert.equal(dos05.rechazar, true);
   assert.deepEqual(valoresCriticos(dos05).map(function (v) { return Number(v.toFixed(6)); }), [-1.959964, 1.959964]);
   assert.equal(dos05.hipotesis.h1, "μ ≠ 70");
   assert.equal(dos05.hipotesis.cola, "dos colas");
 
   const dos01 = sinError(ph.pruebaMediaZ(100, 71.8, 8.9, true, 70, "dos-colas", 0.01));
-  assert.equal(dos01.rechazar, false);                        // 0.0431 > 0.01
+  assert.equal(dos01.rechazar, false);
 
   const izquierda = sinError(ph.pruebaMediaZ(100, 71.8, 8.9, true, 70, "izquierda", 0.05));
-  cercano(izquierda.valorP, 1 - 0.021563811339088888);       // P(Z ≤ 2.02)
+  cercano(izquierda.valorP, 1 - 0.021563811339088888);
   assert.equal(izquierda.rechazar, false);
   assert.equal(izquierda.criticos[0].lado, "inferior");
   cercano(izquierda.criticos[0].critico.valor, -1.6448536269514722);
@@ -73,7 +64,6 @@ test("el mismo estadístico, decisiones a ambos lados de α y con las tres colas
 });
 
 test("una media, Z con dos colas: se rechaza H₀ (z < −z_α/2)", function () {
-  // n = 50, x̄ = 7.8, σ = 0.5; H₀: μ = 8, H₁: μ ≠ 8, α = 0.01
   const r = sinError(ph.pruebaMediaZ(50, 7.8, 0.5, true, 8, "dos-colas", 0.01));
   cercano(r.estadistico, -2.8284271247461925);
   cercano(r.criticos[0].critico.valor, -2.575829303548901);
@@ -83,7 +73,6 @@ test("una media, Z con dos colas: se rechaza H₀ (z < −z_α/2)", function () 
 });
 
 test("una media, Z con σ desconocida y n ≥ 30 (usa s), cola izquierda", function () {
-  // n = 36, x̄ = 48.2, s = 4.1; H₀: μ = 50, H₁: μ < 50, α = 0.05
   const r = sinError(ph.pruebaMediaZ(36, 48.2, 4.1, false, 50, "izquierda", 0.05));
   cercano(r.estadistico, -2.6341463414634108);
   cercano(r.valorP, 0.004217456221522793);
@@ -91,13 +80,12 @@ test("una media, Z con σ desconocida y n ≥ 30 (usa s), cola izquierda", funct
 });
 
 test("una media, t con n < 30, cola izquierda: no se rechaza H₀", function () {
-  // n = 12, x̄ = 42, s = 11.9; H₀: μ = 46, H₁: μ < 46, α = 0.05
   const r = sinError(ph.pruebaMediaT(12, 42, 11.9, 46, "izquierda", 0.05));
-  assert.equal(r.gl, 11);                                     // ν = n − 1
+  assert.equal(r.gl, 11);
   assert.equal(r.distribucion, "t");
   assert.equal(r.criticos[0].critico.parametros, "gl = 11");
   cercano(r.estadistico, -1.1644039042479846);
-  cercano(r.criticos[0].critico.valor, -1.795884818704044);  // −t_0.05,11
+  cercano(r.criticos[0].critico.valor, -1.795884818704044);
   cercano(r.valorP, 0.13444641275899213);
   assert.equal(r.rechazar, false);
 });
@@ -113,7 +101,6 @@ test("una media desde una lista de datos: misma prueba que con los resúmenes", 
 // ---------- Una proporción ----------
 
 test("una proporción, cola derecha: el error estándar usa π₀", function () {
-  // n = 100, x = 70; H₀: π = 0.6, H₁: π > 0.6, α = 0.05
   const r = sinError(ph.pruebaProporcion(100, 70, null, 0.6, "derecha", 0.05));
   cercano(r.p, 0.7);
   cercano(r.q0, 0.4);
@@ -122,7 +109,6 @@ test("una proporción, cola derecha: el error estándar usa π₀", function () 
   cercano(r.valorP, 0.02061341666858185);
   assert.equal(r.rechazar, true);
   assert.deepEqual(r.advertencias, []);
-  // Con p̂ en lugar de x se obtiene lo mismo.
   const conPhat = sinError(ph.pruebaProporcion(100, null, 0.7, 0.6, "derecha", 0.05));
   cercano(conPhat.estadistico, r.estadistico);
 });
@@ -137,28 +123,26 @@ test("una proporción con p = 0 sí se puede probar, con advertencia si n·π₀
 // ---------- Una varianza ----------
 
 test("una varianza con chi-cuadrada: las tres colas y sus valores críticos", function () {
-  // n = 10, s = 1.2, H₀: σ² = 0.81 → χ² = 9 · 1.44 / 0.81 = 16
   const derecha = sinError(ph.pruebaVarianza(10, 1.2, null, 0.81, "derecha", 0.05));
   assert.equal(derecha.gl, 9);
   cercano(derecha.varianza, 1.44);
   cercano(derecha.estadistico, 16);
-  cercano(derecha.criticos[0].critico.valor, 16.918977604620448);  // χ²_0.05,9
+  cercano(derecha.criticos[0].critico.valor, 16.918977604620448);
   cercano(derecha.valorP, 0.06688158777412673);
   assert.equal(derecha.rechazar, false);
   assert.equal(derecha.hipotesis.h0, "σ² = 0.81");
 
   const izquierda = sinError(ph.pruebaVarianza(10, 1.2, null, 0.81, "izquierda", 0.05));
-  cercano(izquierda.criticos[0].critico.valor, 3.325112843066815); // χ²_0.95,9
+  cercano(izquierda.criticos[0].critico.valor, 3.325112843066815);
   cercano(izquierda.valorP, 0.9331184122258733);
   assert.equal(izquierda.rechazar, false);
 
   const dos = sinError(ph.pruebaVarianza(10, null, 1.44, 0.81, "dos-colas", 0.05));
-  cercano(dos.criticos[0].critico.valor, 2.7003894999803584);       // χ²_0.975,9
-  cercano(dos.criticos[1].critico.valor, 19.02276779864163);        // χ²_0.025,9
-  cercano(dos.valorP, 0.13376317554825345);                          // 2 · mín(colas)
+  cercano(dos.criticos[0].critico.valor, 2.7003894999803584);
+  cercano(dos.criticos[1].critico.valor, 19.02276779864163);
+  cercano(dos.valorP, 0.13376317554825345);
   assert.equal(dos.rechazar, false);
 
-  // Con α = 0.10 en cola derecha (crítico 14.68) sí se rechaza: valor p 0.0669 < 0.10.
   assert.equal(sinError(ph.pruebaVarianza(10, 1.2, null, 0.81, "derecha", 0.10)).rechazar, true);
 });
 
@@ -176,28 +160,24 @@ test("dos medias con Z y σ conocidas, cola derecha", function () {
 });
 
 test("dos medias con t y varianzas iguales: gl = n₁ + n₂ − 2 y d₀ ≠ 0", function () {
-  // n₁ = 12, x̄₁ = 85, s₁ = 4; n₂ = 10, x̄₂ = 81, s₂ = 5; H₀: μ₁ − μ₂ = 2, H₁: μ₁ − μ₂ > 2
   const r = sinError(ph.pruebaDosMediasTIguales(12, 85, 4, 10, 81, 5, 2, "derecha", 0.05));
   assert.equal(r.gl, 20);
   cercano(r.sp, 4.4777226354476225);
   cercano(r.estadistico, 1.0431627961927559);
-  cercano(r.criticos[0].critico.valor, 1.7247182429207866);  // t_0.05,20
+  cercano(r.criticos[0].critico.valor, 1.7247182429207866);
   cercano(r.valorP, 0.15465940995588925);
   assert.equal(r.rechazar, false);
   assert.equal(r.hipotesis.h1, "μ₁ − μ₂ > 2");
-  // Con d₀ ≠ 0 no se agrega "es decir, μ₁ > μ₂", porque no es lo mismo.
   assert.doesNotMatch(r.conclusion, /es decir/);
 });
 
 test("dos medias con t y varianzas diferentes: gl de Welch redondeado hacia abajo, dos colas", function () {
-  // n₁ = 15, x̄₁ = 23.1, s₁ = 2.9; n₂ = 11, x̄₂ = 20.4, s₂ = 5.8; α = 0.05
   const r = sinError(ph.pruebaDosMediasTDiferentes(15, 23.1, 2.9, 11, 20.4, 5.8, 0, "dos-colas", 0.05));
   cercano(r.glWelch, 13.67448168959504);
-  assert.equal(r.gl, 13);                                          // ⌊13.67⌋, no 14
+  assert.equal(r.gl, 13);
   cercano(r.estadistico, 1.4193142528587446);
-  cercano(r.criticos[1].critico.valor, 2.160368656462791);         // tabla: t_{0.025,13} = 2.160
+  cercano(r.criticos[1].critico.valor, 2.160368656462791);
   assert.equal(r.criticos[1].critico.parametros, "gl = 13");
-  // El valor p también usa ν = 13: P(|T₁₃| ≥ 1.4193)
   cercano(r.valorP, 2 * (1 - vc.cdfT(1.4193142528587446, 13)));
   cercano(r.valorP, 0.17933864703230196);
   assert.equal(r.rechazar, false);
@@ -206,7 +186,6 @@ test("dos medias con t y varianzas diferentes: gl de Welch redondeado hacia abaj
 // ---------- Dos proporciones ----------
 
 test("dos proporciones con proporción combinada, cola derecha", function () {
-  // n₁ = 200, x₁ = 120; n₂ = 500, x₂ = 240; H₀: π₁ = π₂, H₁: π₁ > π₂, α = 0.05
   const r = sinError(ph.pruebaDosProporciones(200, 120, null, 500, 240, null, "derecha", 0.05));
   cercano(r.p1, 0.6);
   cercano(r.p2, 0.48);
@@ -216,7 +195,6 @@ test("dos proporciones con proporción combinada, cola derecha", function () {
   assert.equal(r.rechazar, true);
   assert.equal(r.hipotesis.h0, "π₁ − π₂ = 0");
   assert.match(r.conclusion, /es decir, π₁ > π₂/);
-  // Con p̂ en lugar de x, el mismo resultado.
   const conPhat = sinError(ph.pruebaDosProporciones(200, null, 0.6, 500, null, 0.48, "derecha", 0.05));
   cercano(conPhat.estadistico, r.estadistico);
 });
@@ -226,18 +204,17 @@ test("dos proporciones desde listas 0/1", function () {
   const b = est.calcularProporcion(est.leerListaBinaria("0 1 0 0 1 0").valores);
   const r = sinError(ph.pruebaDosProporciones(a.n, a.exitos, null, b.n, b.exitos, null, "dos-colas", 0.05));
   cercano(r.combinada, 7 / 14);
-  assert.equal(r.advertencias.length, 1);                     // muestras pequeñas: n·p < 5
+  assert.equal(r.advertencias.length, 1);
 });
 
 // ---------- Muestras pareadas ----------
 
 test("muestras pareadas con resumen: t, ν = n − 1, cola derecha", function () {
-  // d = 2, 4, 1, 3, 5, −1, 2, 4 → d̄ = 2.5, s_d = 1.9272; H₁: μ_D > 0, α = 0.01
   const d = est.calcularDescriptivos([2, 4, 1, 3, 5, -1, 2, 4]);
   const r = sinError(ph.pruebaPareadas(d.n, d.media, d.desviacion, 0, "derecha", 0.01));
   assert.equal(r.gl, 7);
   cercano(r.estadistico, 3.668996928526714);
-  cercano(r.criticos[0].critico.valor, 2.9979515668685277);  // t_0.01,7
+  cercano(r.criticos[0].critico.valor, 2.9979515668685277);
   cercano(r.valorP, 0.003987407956293977);
   assert.equal(r.rechazar, true);
   assert.equal(r.hipotesis.h0, "μ_D = 0");
@@ -258,13 +235,12 @@ test("muestras pareadas desde dos listas: se usan las diferencias, no muestras i
 // ---------- Cociente de varianzas ----------
 
 test("cociente de varianzas con F: dos colas y cola izquierda", function () {
-  // n₁ = 12, s₁ = 4; n₂ = 10, s₂ = 5 → F = 16 / 25 = 0.64, ν₁ = 11, ν₂ = 9, α = 0.10
   const dos = sinError(ph.pruebaCocienteVarianzas(12, 4, null, 10, 5, null, "dos-colas", 0.10));
   assert.equal(dos.gl1, 11);
   assert.equal(dos.gl2, 9);
   cercano(dos.estadistico, 0.64);
-  cercano(dos.criticos[0].critico.valor, 0.34527730855736555); // F_0.95(11,9)
-  cercano(dos.criticos[1].critico.valor, 3.1024854075283783);  // F_0.05(11,9)
+  cercano(dos.criticos[0].critico.valor, 0.34527730855736555);
+  cercano(dos.criticos[1].critico.valor, 3.1024854075283783);
   cercano(dos.valorP, 0.47864961042191234);
   assert.equal(dos.rechazar, false);
   assert.equal(dos.hipotesis.h0, "σ₁² / σ₂² = 1");
@@ -278,7 +254,7 @@ test("cociente de varianzas con F: dos colas y cola izquierda", function () {
 test("cociente de varianzas con F, cola derecha: se rechaza H₀", function () {
   const r = sinError(ph.pruebaCocienteVarianzas(16, null, 30, 13, null, 8, "derecha", 0.05));
   cercano(r.estadistico, 3.75);
-  cercano(r.criticos[0].critico.valor, 2.6168512341321053);    // F_0.05(15,12)
+  cercano(r.criticos[0].critico.valor, 2.6168512341321053);
   cercano(r.valorP, 0.013132507942640089);
   assert.equal(r.rechazar, true);
 });
@@ -298,7 +274,6 @@ test("rechazar H₀ coincide siempre con valor p < α", function () {
           const d = ph.decidirPrueba(x, dist, gl1, gl2, alternativa, alfa);
           assert.equal(d.rechazar, d.valorP < alfa, [dist, x, alternativa, alfa].join(" "));
           if (gl1 === 13.67) {
-            // gl no entero: el valor crítico y el valor p usan ⌊13.67⌋ = 13.
             const d13 = ph.decidirPrueba(x, dist, 13, null, alternativa, alfa);
             assert.equal(d.valorP, d13.valorP);
             assert.equal(d.criticos[0].critico.valor, d13.criticos[0].critico.valor);
@@ -320,9 +295,9 @@ test("un estadístico igual al valor crítico no está en la región de rechazo"
 test("el valor p de dos colas es el doble de la cola más pequeña y no pasa de 1", function () {
   const d = ph.decidirPrueba(0, "z", null, null, "dos-colas", 0.05);
   cercano(d.valorP, 1);
-  const chi = ph.decidirPrueba(2, "chi2", 9, null, "dos-colas", 0.05);  // cola izquierda pequeña
+  const chi = ph.decidirPrueba(2, "chi2", 9, null, "dos-colas", 0.05);
   cercano(chi.valorP, 2 * chi.colaIzquierda);
-  assert.equal(chi.rechazar, true);                                     // 2 < χ²_0.975,9 = 2.70
+  assert.equal(chi.rechazar, true);
 });
 
 // ---------- Entradas inválidas ----------
@@ -379,9 +354,6 @@ test("dos proporciones sin éxitos (o sin fracasos) en total: no se puede calcul
   assert.match(ph.pruebaDosProporciones(10, 10, null, 12, 12, null, "derecha", 0.05).error, /todas las observaciones son éxitos/);
 });
 
-// En el navegador todos los archivos de js/ comparten el ámbito global: si dos archivos
-// declaran una función con el mismo nombre, la del último archivo reemplaza a la otra
-// (Node no lo detecta porque carga cada archivo por separado).
 test("los archivos de js/ no repiten nombres de funciones ni constantes globales", function () {
   const fs = require("node:fs");
   const path = require("node:path");

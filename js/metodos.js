@@ -1,42 +1,5 @@
-// Identificación del método según el caso y los datos (Parte 5).
-// Aquí solo se decide QUÉ método corresponde; las fórmulas se implementan después.
-// Estas funciones no usan la página (document), así que también se pueden probar
-// con Node: ver tests/metodos.test.js.
-//
-// Reglas (según el formulario de intervalos de confianza):
-//
-//   Caso                σ          Tamaño          Varianzas    Método
-//   ------------------  ---------  --------------  -----------  ---------------------------
-//   Una media           conocida   cualquiera      —            Z        ("n ≥ 30 o σ² conocida")
-//   Una media           desconoc.  n ≥ 30          —            Z con s  ("n ≥ 30 o σ² conocida")
-//   Una media           desconoc.  n < 30          —            t, gl = n − 1  ("n < 30 y σ² desconocida")
-//   Dos medias          conocidas  cualquiera      —            Z
-//   Dos medias          desconoc.  ambas ≥ 30      iguales      Z (con s₁ y s₂)
-//   Dos medias          desconoc.  ambas < 30      iguales      t con varianza combinada, gl = n₁ + n₂ − 2
-//   Dos medias          desconoc.  no ambas ≥ 30   diferentes   t con gl de Welch
-//   Una proporción, dos proporciones                            Z
-//   Una varianza                                                chi-cuadrada, gl = n − 1
-//   Cociente de varianzas                                       F, gl = n₁ − 1 y n₂ − 1
-//   Muestras pareadas                                           t, gl = n − 1 (n = número de pares)
-//
-// Cualquier otra combinación (por ejemplo, dos medias con varianzas diferentes y
-// ambas muestras grandes) coincide con ninguna o con más de una fila: no se elige
-// un método por defecto.
-
-// A partir de este tamaño la muestra se considera grande.
 const TAMANO_MUESTRA_GRANDE = 30;
 
-// Recibe un objeto con lo que eligió y escribió el usuario:
-//   tipo:      "intervalo" o "prueba"
-//   caso:      "una-media", "dos-medias", "una-proporcion", ... (como en el HTML)
-//   sigma:     "conocida", "desconocida" o "" (solo una media y dos medias)
-//   varianzas: "iguales", "diferentes" o "" (solo dos medias con σ desconocidas)
-//   tamanos:   [n] o [n₁, n₂]; null si el usuario no lo escribió
-// Devuelve uno de estos objetos:
-//   { estado: "identificado", clave, metodo, distribucion, gradosLibertad, explicacion }
-//     (clave identifica la fórmula: "media-z", "media-t", "proporcion", "varianza", ...)
-//   { estado: "falta-dato", mensaje }     falta un dato o no es válido
-//   { estado: "no-determinado", mensaje } la combinación no tiene un método seguro
 function identificarMetodo(datos) {
   if (datos.tipo !== "intervalo" && datos.tipo !== "prueba") {
     return faltaDato("Elige si el ejercicio es un intervalo de confianza o una prueba de hipótesis (paso 1).");
@@ -77,8 +40,6 @@ function identificarMetodo(datos) {
   }
 }
 
-// Una media: deciden σ (conocida o no) y el tamaño de la muestra.
-// Formulario: Z si "n ≥ 30 o σ² conocida"; t si "n < 30 y σ² desconocida".
 function metodoUnaMedia(datos) {
   if (datos.sigma !== "conocida" && datos.sigma !== "desconocida") {
     return faltaDato("Indica si el enunciado da la desviación estándar poblacional σ (paso 4). " +
@@ -91,7 +52,6 @@ function metodoUnaMedia(datos) {
       "σ es conocida; el formulario usa Z cuando n ≥ 30 o σ² es conocida.");
   }
 
-  // σ desconocida: el tamaño de la muestra decide entre Z y t.
   const n = (datos.tamanos || [])[0];
   const problema = revisarTamano(n, "la muestra (n)");
   if (problema) {
@@ -115,8 +75,6 @@ function metodoUnaMedia(datos) {
     "el formulario usa t cuando n < 30 y σ² es desconocida.");
 }
 
-// Dos medias de muestras independientes: deciden σ₁ y σ₂, el tamaño de las
-// muestras y lo que el enunciado supone sobre las varianzas.
 function metodoDosMedias(datos) {
   if (datos.sigma !== "conocida" && datos.sigma !== "desconocida") {
     return faltaDato("Indica si el enunciado da las desviaciones estándar poblacionales σ₁ y σ₂ (paso 4). " +
@@ -171,7 +129,6 @@ function metodoDosMedias(datos) {
       "con tamaños mixtos no se puede elegir con seguridad. Confirma con tu profesor qué método corresponde.");
   }
 
-  // Varianzas diferentes
   if (grandes) {
     return noDeterminado("Las dos muestras son grandes (" + textoTamanos + ") y las varianzas se suponen " +
       "diferentes: coinciden dos métodos del formulario, Z para muestras grandes y t con varianzas diferentes " +
@@ -186,7 +143,6 @@ function metodoDosMedias(datos) {
 
 // ---------- Funciones auxiliares ----------
 
-// Devuelve un mensaje si el tamaño falta o no es un entero ≥ 1, o null si es válido.
 function revisarTamano(n, nombre) {
   if (n === null || n === undefined) {
     return "Falta el tamaño de " + nombre + ".";
@@ -197,7 +153,6 @@ function revisarTamano(n, nombre) {
   return null;
 }
 
-// Grados de libertad como texto: "n − 1 = 11" si el valor se conoce, o solo "n − 1".
 function textoGL(formula, valor) {
   return Number.isInteger(valor) && valor >= 1 ? formula + " = " + valor : formula;
 }
@@ -206,11 +161,11 @@ function identificado(clave, tipo, parametro, distribucion, gradosLibertad, expl
   const inicio = tipo === "intervalo" ? "Intervalo de confianza para " : "Prueba de hipótesis para ";
   return {
     estado: "identificado",
-    clave: clave, // indica qué fórmula aplicar
+    clave: clave,
 
     metodo: inicio + parametro,
     distribucion: distribucion,
-    gradosLibertad: gradosLibertad, // null si la distribución no usa grados de libertad
+    gradosLibertad: gradosLibertad,
     explicacion: explicacion,
   };
 }
@@ -223,7 +178,6 @@ function noDeterminado(mensaje) {
   return { estado: "no-determinado", mensaje: mensaje };
 }
 
-// Permite usar estas funciones desde Node (pruebas). En el navegador no hace nada.
 if (typeof module !== "undefined") {
   module.exports = {
     TAMANO_MUESTRA_GRANDE,

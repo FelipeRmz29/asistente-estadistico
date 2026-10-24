@@ -1,9 +1,4 @@
 // Pruebas de js/presentacion.js (presentación de los resultados, Parte 10).
-// Ejecutar desde la carpeta del proyecto:  node --test
-//
-// Se calculan intervalos y pruebas reales (js/intervalos.js y js/pruebas.js) y se revisa
-// lo que se mostraría: datos usados, fórmula y sustitución, valor crítico, grados de
-// libertad, resultado, interpretación, decisión y mensajes de error.
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -14,7 +9,6 @@ const ic = require("../js/intervalos.js");
 const ph = require("../js/pruebas.js");
 const est = require("../js/estadistica.js");
 
-// Busca la fila cuya primera columna es nombre (en datos, pasos o valores críticos).
 function fila(filas, nombre) {
   const encontrada = filas.find(function (f) { return f[0] === nombre; });
   assert.ok(encontrada, "falta la fila «" + nombre + "»");
@@ -29,7 +23,7 @@ function nombres(filas) {
 
 test("redondeo: 4 decimales al mostrar; valores p pequeños con 4 cifras significativas", function () {
   assert.equal(pr.formatear(2.0224719101123565), "2.0225");
-  assert.equal(pr.formatear(1.2), "1.2");                // sin ceros sobrantes
+  assert.equal(pr.formatear(1.2), "1.2");
   assert.equal(pr.formatearValorP(0.000123456), "0.0001235");
   assert.equal(pr.formatearValorP(0.4786), "0.4786");
   assert.equal(pr.formatearArea(0.025000000000000022), "0.025");
@@ -39,7 +33,6 @@ test("redondeo: 4 decimales al mostrar; valores p pequeños con 4 cifras signifi
 });
 
 test("los límites se redondean al final, no a partir de valores ya redondeados", function () {
-  // x̄ = 1.00004 y e = 0.00004: redondeados serían 1 + 0 = 1, pero el límite real es 1.00008.
   const r = { alfa: 0.05, critico: { valor: 1.96, descripcion: "" }, margen: 0.00004, inferior: 1, superior: 1.00008 };
   const p = pr.presentarMediaZ(r, 100, 1.00004, 0.001, true, 95, null, null);
   assert.equal(p.resultado, "1 ≤ μ ≤ 1.0001");
@@ -67,7 +60,6 @@ test("con un solo dato no se muestra una varianza inventada", function () {
 // ---------- Intervalos de confianza ----------
 
 test("intervalo con t: valor crítico, grados de libertad, margen de error y límites", function () {
-  // n = 12, x̄ = 42, s = 11.9, 95 %
   const r = ic.intervaloMediaT(12, 42, 11.9, 95);
   const p = pr.presentarMediaT(r, 12, 42, 11.9, 95);
 
@@ -75,12 +67,12 @@ test("intervalo con t: valor crítico, grados de libertad, margen de error y lí
     ["Tamaño de muestra (n)", "Media muestral (x̄)", "Desviación estándar muestral (s)"]);
   assert.equal(p.criticos[0][0], "t_α/2,ν = t_0.025,11");
   assert.equal(p.criticos[0][1], "2.201");
-  assert.match(p.criticos[0][2], /gl = 11/);                   // cómo se obtuvo el valor
+  assert.match(p.criticos[0][2], /gl = 11/);
 
   assert.deepEqual(fila(p.pasos, "Grados de libertad"), ["Grados de libertad", "ν = n − 1", "ν = 12 − 1 = 11"]);
   const margen = fila(p.pasos, "Margen de error");
-  assert.equal(margen[1], "e = t_α/2,ν · s / √n");             // fórmula
-  assert.equal(margen[2], "e = 2.201 · 11.9 / √12 = " + pr.formatear(r.margen)); // sustitución
+  assert.equal(margen[1], "e = t_α/2,ν · s / √n");
+  assert.equal(margen[2], "e = 2.201 · 11.9 / √12 = " + pr.formatear(r.margen));
   assert.equal(fila(p.pasos, "Límite inferior")[2], "42 − " + pr.formatear(r.margen) + " = " + pr.formatear(r.inferior));
   assert.equal(p.resultado, pr.formatear(r.inferior) + " ≤ μ ≤ " + pr.formatear(r.superior));
 });
@@ -90,7 +82,6 @@ test("la interpretación es breve y no repite la aclaración sobre el nivel de c
   const p = pr.presentarMediaT(r, 12, 42, 11.9, 95);
   assert.equal(p.interpretacion, "Con un 95 % de confianza, se estima que la media poblacional μ está entre " +
     pr.formatear(r.inferior) + " y " + pr.formatear(r.superior) + ".");
-  // La aclaración va una sola vez, en las notas (NOTA_CONFIANZA).
   assert.match(pr.NOTA_CONFIANZA, /No es la probabilidad/);
 });
 
@@ -108,7 +99,7 @@ test("intervalo de una varianza: la varianza y la desviación estándar van etiq
   assert.equal(p.resultado.length, 2);
   assert.match(p.resultado[0], /^Intervalo para la varianza \(σ²\): .* ≤ σ² ≤ /);
   assert.match(p.resultado[1], /^Intervalo para la desviación estándar \(σ\): .* ≤ σ ≤ /);
-  assert.equal(p.criticos.length, 2);                          // un χ² para cada límite
+  assert.equal(p.criticos.length, 2);
   assert.ok(nombres(p.pasos).includes("Límite inferior de σ²"));
   assert.ok(nombres(p.pasos).includes("Límite inferior de σ"));
   assert.match(p.interpretacion, /varianza poblacional σ² está entre .* y la desviación estándar poblacional σ, entre/);
@@ -128,7 +119,6 @@ test("intervalo de dos medias: criterio de decisión y notas cortas", function (
 // ---------- Pruebas de hipótesis ----------
 
 test("prueba con t: H₀, H₁, estadístico, distribución, gl, valor crítico, valor p y conclusión", function () {
-  // n = 12, x̄ = 42, s = 11.9; H₀: μ = 46, H₁: μ < 46, α = 0.05
   const r = ph.pruebaMediaT(12, 42, 11.9, 46, "izquierda", 0.05);
   const p = pr.presentarPrueba("media-t", r, { n: 12, media: 42, s: 11.9, sigmaConocida: false, desviacion: 11.9 });
 

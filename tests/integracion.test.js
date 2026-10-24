@@ -1,10 +1,3 @@
-// Ejecuta las pruebas integrales (tests/integracion.html) en un navegador sin ventana.
-// Ejecutar desde la carpeta del proyecto:  node --test
-//
-// Usa Microsoft Edge o Google Chrome si están instalados (o el que indique la variable de
-// entorno NAVEGADOR). No instala nada: abre la página con --headless y lee el texto que
-// deja en <pre id="salida">. Si no encuentra un navegador, la prueba se omite y se puede
-// abrir la página a mano (ver tests/integracion.html).
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -32,14 +25,13 @@ const omitir = navegador ? false
   : "No se encontró Edge ni Chrome. Abre tests/integracion.html con un servidor local o define NAVEGADOR.";
 
 test("recorridos completos de la página en un navegador real", { skip: omitir }, function () {
-  // Perfil temporal: así no se usa ni se modifica el perfil del navegador de la persona.
   const perfil = fs.mkdtempSync(path.join(os.tmpdir(), "pruebas-integrales-"));
   let html;
   try {
     html = execFileSync(navegador, [
       "--headless=new",
       "--disable-gpu",
-      "--allow-file-access-from-files", // la página de pruebas lee el iframe de ../index.html
+      "--allow-file-access-from-files",
       "--user-data-dir=" + perfil,
       "--dump-dom",
       pathToFileURL(path.join(__dirname, "integracion.html")).href,

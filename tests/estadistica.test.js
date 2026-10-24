@@ -1,11 +1,9 @@
 // Pruebas de js/estadistica.js con el ejecutor de pruebas incluido en Node.
-// Ejecutar desde la carpeta del proyecto:  node --test
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const est = require("../js/estadistica.js");
 
-// Compara números decimales con una tolerancia muy pequeña.
 function casiIgual(real, esperado) {
   assert.ok(Math.abs(real - esperado) < 1e-12, real + " debería ser " + esperado);
 }
@@ -54,7 +52,7 @@ test("rechaza datos no numéricos e indica cuál es", function () {
 });
 
 test("rechaza formatos numéricos ambiguos o no finitos", function () {
-  assert.match(est.leerLista("1,5,3; 2").error, /«1,5,3»/);  // dos comas en un dato
+  assert.match(est.leerLista("1,5,3; 2").error, /«1,5,3»/);
   assert.match(est.leerLista("1..5").error, /no es un número/);
   assert.match(est.leerLista("0x10").error, /no es un número/);
   assert.match(est.leerLista("Infinity").error, /no es un número/);
@@ -75,7 +73,6 @@ test("lista binaria: acepta solo 0 y 1", function () {
 // ---------- Estadísticos descriptivos ----------
 
 test("media, varianza y desviación de un ejemplo conocido", function () {
-  // 2, 4, 4, 4, 5, 5, 7, 9: suma 40, media 5, Σ(x − x̄)² = 32, s² = 32/7
   const d = est.calcularDescriptivos([2, 4, 4, 4, 5, 5, 7, 9]);
   assert.equal(d.n, 8);
   assert.equal(d.suma, 40);
@@ -85,12 +82,10 @@ test("media, varianza y desviación de un ejemplo conocido", function () {
 });
 
 test("la varianza muestral divide entre n − 1", function () {
-  // 1, 2, 3, 4: media 2.5, Σ(x − x̄)² = 5, s² = 5/3 (con n daría 1.25)
   casiIgual(est.calcularVarianzaMuestral([1, 2, 3, 4]), 5 / 3);
 });
 
 test("ejemplo con decimales leído con coma decimal", function () {
-  // 1.5, 2.7, 3.1: media 7.3/3, Σ(x − x̄)² = 1.3866..., s² = 0.69333...
   const d = est.calcularDescriptivos(est.leerLista("1,5; 2,7; 3,1").valores);
   assert.equal(d.n, 3);
   casiIgual(d.media, 7.3 / 3);
@@ -98,7 +93,6 @@ test("ejemplo con decimales leído con coma decimal", function () {
 });
 
 test("la varianza es precisa con valores grandes", function () {
-  // Desviaciones respecto a la media: −6, −3, 3, 6 -> Σ = 90, s² = 30
   const d = est.calcularDescriptivos([1e9 + 4, 1e9 + 7, 1e9 + 13, 1e9 + 16]);
   assert.equal(d.media, 1e9 + 10);
   casiIgual(d.varianza, 30);
@@ -146,7 +140,6 @@ test("diferencias pareadas: muestra 1 − muestra 2, en orden", function () {
 });
 
 test("estadísticos de las diferencias pareadas", function () {
-  // d = 2, 0, 5: media 7/3, Σ(d − d̄)² = 38/3, s_d² = 19/3
   const d = est.calcularDescriptivos(est.calcularDiferencias([5, 7, 9], [3, 7, 4]).diferencias);
   casiIgual(d.media, 7 / 3);
   casiIgual(d.varianza, 19 / 3);

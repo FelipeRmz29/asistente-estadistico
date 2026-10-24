@@ -1,23 +1,9 @@
-// Pruebas integrales (Parte 11).
-// Cargan la página real (../index.html) en un iframe y la usan como una persona: eligen
-// opciones, escriben datos, pulsan «Revisar datos» o «Reiniciar» y leen lo que se muestra.
-// Así se prueba js/app.js (formulario, resultados en pantalla, reinicio y errores), que las
-// pruebas de Node no pueden cargar porque necesita una página.
-//
-// Los valores esperados vienen de ejemplos resueltos de Walpole, Myers, Myers y Ye,
-// «Probabilidad y estadística para ingeniería y ciencias» (capítulos 9 y 10), o de cálculos
-// a mano con tablas. El libro redondea y usa valores de tablas, por eso cada comparación
-// tiene una tolerancia; los valores exactos ya se prueban en los demás archivos de tests/.
-//
-// Cómo ejecutarlas:
-//   - Con Node: node --test (tests/integracion.test.js abre esta página en Edge o Chrome sin ventana).
-//   - En el navegador: python -m http.server 8000 y abre http://localhost:8000/tests/integracion.html
 
-let marco;              // el iframe con la página
-let app;                // window de la página
-let doc;                // document de la página
+let marco;
+let app;
+let doc;
 let formulario;
-const resultados = [];  // { nombre, ok, detalle }
+const resultados = [];
 const erroresConsola = [];
 
 // ---------- Ejecutar las pruebas ----------
@@ -32,7 +18,6 @@ function prueba(nombre, fn) {
   }
 }
 
-// Vuelve el formulario a su estado inicial sin usar el botón «Reiniciar» (que se prueba aparte).
 function limpiar() {
   marco.style.width = "1000px";
   formulario.reset();
@@ -41,7 +26,6 @@ function limpiar() {
 
 // ---------- Acciones de la persona ----------
 
-// Tarjetas del paso 1 que hay que tocar para cada caso (en este orden).
 const TARJETAS_POR_CASO = {
   "una-media": { parametro: "media", muestras: "una" },
   "dos-medias": { parametro: "media", muestras: "dos", relacion: "independientes" },
@@ -58,7 +42,6 @@ function tarjeta(pregunta, valor) {
   return boton;
 }
 
-// Toca una tarjeta (la elige o, si ya estaba elegida, la quita); falla si no se ve.
 function tocar(pregunta, valor) {
   const boton = tarjeta(pregunta, valor);
   if (oculto(boton)) throw new Error("La tarjeta " + pregunta + " = " + valor + " no está visible");
@@ -69,8 +52,6 @@ function elegida(pregunta, valor) {
   return tarjeta(pregunta, valor).getAttribute("aria-pressed") === "true";
 }
 
-// Elige una opción como lo haría una persona: el caso, el tipo, σ y las varianzas con
-// las tarjetas del paso 1; lo demás con los radios del formulario.
 function elegir(nombre, valor) {
   if (nombre === "caso") {
     const tarjetas = TARJETAS_POR_CASO[valor];
@@ -90,15 +71,13 @@ function elegir(nombre, valor) {
   const opcion = Array.from(campo).find(function (r) { return r.value === valor; });
   if (!opcion) throw new Error("No existe la opción " + nombre + " = " + valor);
   if (oculto(opcion)) throw new Error("La opción " + nombre + " = " + valor + " no está visible");
-  opcion.click(); // como un clic real: marca la opción y dispara «change»
+  opcion.click();
 }
 
-// Varias opciones en orden, por ejemplo { tipo: "intervalo", caso: "una-media", ... }.
 function elegirTodo(opciones) {
   for (const nombre in opciones) elegir(nombre, opciones[nombre]);
 }
 
-// Escribe en un campo; falla si el campo no se ve para el caso elegido.
 function escribir(campos) {
   for (const id in campos) {
     const campo = doc.getElementById(id);
@@ -132,14 +111,12 @@ function tarjetasVisibles() {
   });
 }
 
-// Líneas destacadas (resultado o decisión) dentro de una tarjeta.
 function destacados(idTarjeta) {
   return Array.from(doc.querySelectorAll("#" + idTarjeta + " .resultado-intervalo")).map(function (p) {
     return p.textContent;
   });
 }
 
-// Celdas de la fila de una tabla cuya primera columna empieza con «inicio».
 function fila(idTarjeta, inicio) {
   for (const tr of doc.querySelectorAll("#" + idTarjeta + " tr")) {
     if (tr.cells[0] && tr.cells[0].textContent.startsWith(inicio)) {
@@ -149,7 +126,6 @@ function fila(idTarjeta, inicio) {
   throw new Error("No se encontró la fila «" + inicio + "» en #" + idTarjeta);
 }
 
-// Párrafo de una tarjeta que empieza con «inicio».
 function parrafo(idTarjeta, inicio) {
   for (const p of doc.querySelectorAll("#" + idTarjeta + " p")) {
     if (p.textContent.startsWith(inicio)) return p.textContent;
@@ -157,18 +133,15 @@ function parrafo(idTarjeta, inicio) {
   throw new Error("No se encontró el párrafo «" + inicio + "» en #" + idTarjeta);
 }
 
-// Números que aparecen en un texto, en orden. Los subíndices (σ₁², μ₂) no son dígitos y no cuentan.
 function numeros(cadena) {
   return (cadena.match(/-?\d+(\.\d+)?/g) || []).map(Number);
 }
 
-// El número que queda después del último «=» (por ejemplo, el valor del estadístico).
 function ultimoValor(cadena) {
   const partes = cadena.split("= ");
   return Number(partes[partes.length - 1].replace("≈ ", ""));
 }
 
-// Límites de un intervalo mostrado como «a ≤ parámetro ≤ b».
 function limites(linea) {
   const n = numeros(linea.split(":").pop());
   return [n[0], n[n.length - 1]];
@@ -219,7 +192,7 @@ function todasLasPruebas() {
     revisar();
     igual(tarjetasVisibles().join(","), "metodo,intervalo", "tarjetas");
     contiene(texto("metodo"), "normal estándar Z", "método");
-    intervaloCerca(destacados("intervalo")[0], 2.50, 2.70, 0.005);  // libro: 2.50 < μ < 2.70
+    intervaloCerca(destacados("intervalo")[0], 2.50, 2.70, 0.005);
     contiene(texto("intervalo"), "al menos 139 observaciones", "tamaño de muestra");
     verdadero(!doc.getElementById("nota-redondeo").hidden, "la nota de redondeo debería verse");
   });
@@ -232,7 +205,7 @@ function todasLasPruebas() {
     igual(fila("resultados", "Tamaño de muestra")[2], "7", "n de la lista");
     igual(fila("resultados", "Media muestral")[2], "10", "x̄ de la lista");
     igual(fila("intervalo", "Grados de libertad")[2], "ν = 7 − 1 = 6", "grados de libertad");
-    intervaloCerca(destacados("intervalo")[0], 9.74, 10.26, 0.005); // libro: 9.74 < μ < 10.26
+    intervaloCerca(destacados("intervalo")[0], 9.74, 10.26, 0.005);
   });
 
   prueba("intervalo, una proporción, resumen (Walpole 9.13)", function () {
@@ -249,7 +222,7 @@ function todasLasPruebas() {
     const lineas = destacados("intervalo");
     contiene(lineas[0], "Intervalo para la varianza (σ²)", "etiqueta de σ²");
     contiene(lineas[1], "Intervalo para la desviación estándar (σ)", "etiqueta de σ");
-    intervaloCerca(lineas[0], 0.135, 0.953, 0.002);                  // libro: 0.135 < σ² < 0.953
+    intervaloCerca(lineas[0], 0.135, 0.953, 0.002);
     const [a, b] = limites(lineas[1]);
     cerca(a, Math.sqrt(0.1354), 0.001, "límite inferior de σ");
     cerca(b, Math.sqrt(0.9539), 0.001, "límite superior de σ");
@@ -262,7 +235,6 @@ function todasLasPruebas() {
     escribir({ "nivel-confianza": "96", "dm1-n": "50", "dm1-xbarra": "36", "dm1-sigma": "6",
       "dm2-n": "75", "dm2-xbarra": "42", "dm2-sigma": "8" });
     revisar();
-    // El libro da 3.43 < μ₂ − μ₁ < 8.57; aquí se pide μ₁ − μ₂, así que cambia el signo.
     intervaloCerca(destacados("intervalo")[0], -8.57, -3.43, 0.01);
     contiene(destacados("intervalo")[1], "μ₁ < μ₂", "criterio de decisión");
   });
@@ -283,7 +255,7 @@ function todasLasPruebas() {
       "dm2-n": "12", "dm2-xbarra": "1.49", "dm2-s": "0.80" });
     revisar();
     contiene(fila("intervalo", "Grados de libertad (Welch)")[2], "= 16.3278", "gl de Welch sin redondear");
-    igual(ultimoValor(fila("intervalo", "Grados de libertad (Welch)")[2]), 16, "gl de Welch redondeados hacia abajo"); // libro: ≈ 16
+    igual(ultimoValor(fila("intervalo", "Grados de libertad (Welch)")[2]), 16, "gl de Welch redondeados hacia abajo");
     intervaloCerca(destacados("intervalo")[0], 0.60, 4.10, 0.01);
   });
 
@@ -298,7 +270,6 @@ function todasLasPruebas() {
     elegirTodo({ tipo: "intervalo", caso: "pareadas", formato: "lista" });
     escribir({ "nivel-confianza": "95", "par1-datos": "12 14 11 13 15 9 12 14", "par2-datos": "10 10 10 10 10 10 10 10" });
     revisar();
-    // d = 2, 4, 1, 3, 5, −1, 2, 4 → d̄ = 2.5, s_d = 1.9272; e = 2.365 · 1.9272 / √8 = 1.6115
     contiene(texto("resultados"), "Diferencias (d = muestra 1 − muestra 2)", "tabla de diferencias");
     igual(fila("intervalo", "Media de las diferencias")[1], "2.5", "d̄");
     intervaloCerca(destacados("intervalo")[0], 0.8885, 4.1115, 0.001);
@@ -308,7 +279,6 @@ function todasLasPruebas() {
     elegirTodo({ tipo: "intervalo", caso: "cociente-varianzas", formato: "resumen" });
     escribir({ "nivel-confianza": "98", "cv1-n": "15", "cv1-s": "3.07", "cv2-n": "12", "cv2-s": "0.80" });
     revisar();
-    // El libro usa valores F de tabla (redondeados): 3.425 < σ₁²/σ₂² < 56.991. Tolerancia de 0.5 %.
     const [a, b] = limites(destacados("intervalo")[0]);
     cerca(a, 3.425, 3.425 * 0.005, "límite inferior");
     cerca(b, 56.991, 56.991 * 0.005, "límite superior");
@@ -330,8 +300,8 @@ function todasLasPruebas() {
   prueba("prueba, una media: las tres colas cambian H₁, los valores críticos y la decisión", function () {
     const datos = { "nivel-significancia": "0.05", "media-n": "100", "media-xbarra": "71.8", "media-sigma": "8.9", "h0-valor": "70" };
     const casos = [
-      ["dos-colas", "μ ≠ 70", 2, "Decisión: se rechaza H₀"],     // |2.02| > 1.96
-      ["izquierda", "μ < 70", 1, "Decisión: no se rechaza H₀"],  // 2.02 no es < −1.645
+      ["dos-colas", "μ ≠ 70", 2, "Decisión: se rechaza H₀"],
+      ["izquierda", "μ < 70", 1, "Decisión: no se rechaza H₀"],
       ["derecha", "μ > 70", 1, "Decisión: se rechaza H₀"],
     ];
     for (const [cola, h1, criticos, decision] of casos) {
@@ -401,7 +371,6 @@ function todasLasPruebas() {
     escribir({ "nivel-significancia": "0.05", "dm1-n": "15", "dm1-xbarra": "23.1", "dm1-s": "2.9",
       "dm2-n": "11", "dm2-xbarra": "20.4", "dm2-s": "5.8", "h0-valor": "0" });
     revisar();
-    // A mano: t = 2.7 / √(2.9²/15 + 5.8²/11) = 1.419; ν (Welch) = 13.67 → ⌊13.67⌋ = 13
     cerca(ultimoValor(fila("prueba", "Estadístico de prueba")[2]), 1.419, 0.001, "t");
     igual(fila("prueba", "Distribución de referencia")[1], "t de Student, ν = 13", "gl de Welch redondeados hacia abajo");
     igual(ultimoValor(fila("prueba", "Grados de libertad (Welch)")[2]), 13, "gl de Welch en el procedimiento");
@@ -412,7 +381,7 @@ function todasLasPruebas() {
     elegirTodo({ tipo: "prueba", caso: "dos-proporciones", formato: "resumen", alternativa: "derecha" });
     escribir({ "nivel-significancia": "0.05", "dp1-n": "200", "dp1-x": "120", "dp2-n": "500", "dp2-x": "240" });
     revisar();
-    cerca(ultimoValor(fila("prueba", "Estadístico de prueba")[2]), 2.9, 0.05, "z");  // libro: z = 2.9
+    cerca(ultimoValor(fila("prueba", "Estadístico de prueba")[2]), 2.9, 0.05, "z");
     igual(destacados("prueba")[0], "Decisión: se rechaza H₀", "decisión");
   });
 
@@ -432,8 +401,8 @@ function todasLasPruebas() {
     revisar();
     igual(ultimoValor(fila("prueba", "Estadístico de prueba")[2]), 0.64, "F");
     const criticos = filasDeTabla("prueba", "Valor").map(function (c) { return Number(c[1]); });
-    cerca(criticos[0], 0.34, 0.01, "valor crítico izquierdo");  // libro: 1 / f_0.05(9,11) = 0.34
-    cerca(criticos[1], 3.11, 0.01, "valor crítico derecho");    // libro: f_0.05(11,9) = 3.11
+    cerca(criticos[0], 0.34, 0.01, "valor crítico izquierdo");
+    cerca(criticos[1], 3.11, 0.01, "valor crítico derecho");
     igual(destacados("prueba")[0], "Decisión: no se rechaza H₀", "decisión");
   });
 
@@ -481,7 +450,7 @@ function todasLasPruebas() {
     verdadero(!elegida("relacion", "independientes"), "la relación debería quitarse");
     verdadero(!elegida("varianzas", "iguales") && oculto(tarjeta("varianzas", "iguales")), "las varianzas deberían quitarse");
     verdadero(elegida("sigma", "desconocida"), "σ sigue teniendo sentido con una muestra");
-    tocar("parametro", "media"); // quitar el parámetro quita todo lo que depende de él
+    tocar("parametro", "media");
     igual(doc.querySelectorAll('.tarjeta-opcion[aria-pressed="true"]').length, 1, "solo debería quedar el tipo");
   });
 
@@ -563,13 +532,13 @@ function todasLasPruebas() {
     igual(tarjetasVisibles().join(","), "metodo,prueba", "hay resultado antes de reiniciar");
 
     let preguntas = 0;
-    app.confirm = function () { preguntas++; return false; };   // «Cancelar»
+    app.confirm = function () { preguntas++; return false; };
     const antes = foto();
     doc.getElementById("boton-reiniciar").click();
     igual(preguntas, 1, "preguntas al cancelar");
     igual(foto(), antes, "al cancelar no debería cambiar nada");
 
-    app.confirm = function () { preguntas++; return true; };    // «Aceptar»
+    app.confirm = function () { preguntas++; return true; };
     doc.getElementById("boton-reiniciar").click();
     igual(preguntas, 2, "preguntas al aceptar");
     igual(foto(), inicial, "estado después de reiniciar");
@@ -700,7 +669,6 @@ function todasLasPruebas() {
     for (const ancho of [360, 320]) {
       limpiar();
       marco.style.width = ancho + "px";
-      // El resultado más ancho: prueba de Welch (tablas con fórmulas largas).
       elegirTodo({ tipo: "prueba", caso: "dos-medias", formato: "resumen", sigma: "desconocida", varianzas: "diferentes",
         alternativa: "dos-colas" });
       escribir({ "dm1-n": "15", "dm1-xbarra": "23.1", "dm1-s": "2.9", "dm2-n": "11", "dm2-xbarra": "20.4", "dm2-s": "5.8",
@@ -717,7 +685,6 @@ function todasLasPruebas() {
   });
 }
 
-// Filas (celdas) de la tabla de valores críticos: las que tienen el encabezado «Valor».
 function filasDeTabla(idTarjeta, encabezado) {
   for (const tabla of doc.querySelectorAll("#" + idTarjeta + " table")) {
     if (tabla.tHead.rows[0].cells[0].textContent === encabezado) {
@@ -729,7 +696,6 @@ function filasDeTabla(idTarjeta, encabezado) {
   throw new Error("No se encontró la tabla «" + encabezado + "» en #" + idTarjeta);
 }
 
-// Lo que se ve en la página, para comparar antes y después de reiniciar.
 function foto() {
   const valores = Array.from(formulario.elements).map(function (c) {
     return c.type === "radio" ? c.checked : c.value;
@@ -782,7 +748,6 @@ marco.onload = function () {
     };
     todasLasPruebas();
   } catch (error) {
-    // Por ejemplo, si el navegador no deja leer el iframe al abrir la página como archivo.
     resultados.push({ nombre: "cargar la página en el iframe", ok: false,
       detalle: error.message + " (abre esta página con un servidor local; ver el comentario de tests/integracion.html)" });
   }

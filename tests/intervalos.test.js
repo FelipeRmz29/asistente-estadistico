@@ -1,15 +1,9 @@
 // Pruebas de js/intervalos.js con el ejecutor de pruebas incluido en Node.
-// Ejecutar desde la carpeta del proyecto:  node --test
-//
-// Los ejemplos son ejercicios resueltos de Walpole, Myers y Myers, "Probabilidad
-// y estadística para ingeniería y ciencias" (resultado del libro en el comentario).
-// Los valores con todos los decimales se calcularon aparte con SciPy.
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const ic = require("../js/intervalos.js");
 
-// Compara con 9 cifras de precisión.
 function cercano(real, esperado) {
   assert.ok(Math.abs(real - esperado) < 1e-9 * Math.max(1, Math.abs(esperado)),
     real + " debería ser " + esperado);
@@ -23,11 +17,10 @@ function sinError(resultado) {
 // ---------- Una media con Z ----------
 
 test("media con σ conocida (Walpole 9.2: 2.50 < μ < 2.70)", function () {
-  // n = 36, x̄ = 2.6, σ = 0.3, 95 %
   const r = sinError(ic.intervaloMediaZ(36, 2.6, 0.3, true, 95));
   assert.equal(r.alfa, 0.05);
   cercano(r.critico.valor, 1.959963984540054);
-  assert.equal(r.critico.areaIzquierda, 0.975); // z_{α/2} deja α/2 = 0.025 a la derecha
+  assert.equal(r.critico.areaIzquierda, 0.975);
   cercano(r.errorEstandar, 0.05);
   cercano(r.margen, 0.0979981992270027);
   cercano(r.inferior, 2.502001800772997);
@@ -35,7 +28,6 @@ test("media con σ conocida (Walpole 9.2: 2.50 < μ < 2.70)", function () {
 });
 
 test("media con σ desconocida y n ≥ 30: Z con s", function () {
-  // n = 40, x̄ = 50, s = 2.5, 99 %
   const r = sinError(ic.intervaloMediaZ(40, 50, 2.5, false, 99));
   cercano(r.critico.valor, 2.5758293035489004);
   cercano(r.margen, 1.0181859328774703);
@@ -46,7 +38,7 @@ test("media con σ desconocida y n ≥ 30: Z con s", function () {
 test("media con σ conocida y n < 30 también usa Z (n ≥ 30 o σ² conocida)", function () {
   const r = sinError(ic.intervaloMediaZ(9, 20, 3, true, 90));
   cercano(r.critico.valor, 1.6448536269514722);
-  cercano(r.margen, 1.6448536269514722); // 1.6449 · 3/√9
+  cercano(r.margen, 1.6448536269514722);
 });
 
 test("Z con σ desconocida y n < 30 no está permitido", function () {
@@ -62,10 +54,9 @@ test("el intervalo es simétrico: x̄ ± e", function () {
 // ---------- Una media con t ----------
 
 test("media con t (Walpole 9.5: 9.74 < μ < 10.26)", function () {
-  // n = 7, x̄ = 10.0, s = 0.283, 95 %
   const r = sinError(ic.intervaloMediaT(7, 10, 0.283, 95));
   assert.equal(r.gl, 6);
-  cercano(r.critico.valor, 2.4469118511449786); // t_{0.025, 6}
+  cercano(r.critico.valor, 2.4469118511449786);
   assert.equal(r.critico.parametros, "gl = 6");
   cercano(r.margen, 0.26173134677400656);
   cercano(r.inferior, 9.738268653225994);
@@ -80,7 +71,6 @@ test("t requiere n < 30 y al menos 2 datos", function () {
 // ---------- Una proporción ----------
 
 test("proporción con número de éxitos (Walpole 9.13: 0.6391 < π < 0.7209)", function () {
-  // n = 500, x = 340, 95 %
   const r = sinError(ic.intervaloProporcion(500, 340, null, 95));
   assert.equal(r.p, 0.68);
   cercano(r.q, 0.32);
@@ -114,22 +104,21 @@ test("proporción: con p = 0 o p = 1 el método no aplica", function () {
 });
 
 test("proporción: avisa si n·p o n·q < 5 o si un límite sale de [0, 1]", function () {
-  const r = sinError(ic.intervaloProporcion(20, 2, null, 95)); // n·p = 2
+  const r = sinError(ic.intervaloProporcion(20, 2, null, 95));
   assert.equal(r.advertencias.length, 2);
   assert.match(r.advertencias[0], /n·p ≥ 5 y n·q ≥ 5/);
   assert.match(r.advertencias[1], /fuera de \[0, 1\]/);
-  assert.ok(r.inferior < 0); // se muestra tal como da la fórmula, con el aviso
+  assert.ok(r.inferior < 0);
 });
 
 // ---------- Una varianza ----------
 
 test("varianza (Walpole 9.17: 0.135 < σ² < 0.953)", function () {
-  // n = 10, s² = 0.286, 95 %
   const r = sinError(ic.intervaloVarianza(10, null, 0.286, 95));
   assert.equal(r.gl, 9);
   cercano(r.numerador, 9 * 0.286);
-  cercano(r.chiDerecha.valor, 19.02276779864163);   // χ²_{0.025, 9}, deja 0.025 a la derecha
-  cercano(r.chiIzquierda.valor, 2.7003894999803584); // χ²_{0.975, 9}, deja 0.975 a la derecha
+  cercano(r.chiDerecha.valor, 19.02276779864163);
+  cercano(r.chiIzquierda.valor, 2.7003894999803584);
   cercano(r.inferior, 0.1353115396900236);
   cercano(r.superior, 0.9531958260164773);
 });
@@ -150,7 +139,6 @@ test("varianza: el intervalo no es simétrico alrededor de s²", function () {
 });
 
 test("desviación estándar: los límites de σ son la raíz de los límites de σ² (sin redondear)", function () {
-  // n = 10, s² = 0.286, 95 %: 0.1353 < σ² < 0.9532  →  0.3678 < σ < 0.9763
   const r = sinError(ic.intervaloVarianza(10, null, 0.286, 95));
   assert.equal(r.sigmaInferior, Math.sqrt(r.inferior));
   assert.equal(r.sigmaSuperior, Math.sqrt(r.superior));
@@ -158,7 +146,6 @@ test("desviación estándar: los límites de σ son la raíz de los límites de 
   cercano(r.sigmaSuperior * r.sigmaSuperior, r.superior);
   assert.equal(Number(r.sigmaInferior.toFixed(4)), 0.3678);
   assert.equal(Number(r.sigmaSuperior.toFixed(4)), 0.9763);
-  // Con los límites ya redondeados a 4 decimales el resultado sería distinto: no se usan.
   assert.notEqual(r.sigmaInferior, Math.sqrt(Number(r.inferior.toFixed(4))));
   assert.ok(r.sigmaInferior < Math.sqrt(0.286) && Math.sqrt(0.286) < r.sigmaSuperior);
 });
@@ -171,27 +158,24 @@ test("desviación estándar: con s o con s² da el mismo intervalo de σ", funct
 });
 
 test("formato de límites pequeños: conserva 4 cifras significativas", function () {
-  assert.equal(ic.formatearLimite(0.1353115396900236), "0.1353");      // desde 0.1: 4 decimales, como antes
+  assert.equal(ic.formatearLimite(0.1353115396900236), "0.1353");
   assert.equal(ic.formatearLimite(12.5), "12.5");
   assert.equal(ic.formatearLimite(100), "100");
   assert.equal(ic.formatearLimite(0), "0");
-  assert.equal(ic.formatearLimite(0.000123456), "0.0001235");           // con 4 decimales sería 0.0001
+  assert.equal(ic.formatearLimite(0.000123456), "0.0001235");
   assert.equal(ic.formatearLimite(0.0123456), "0.01235");
   assert.equal(ic.formatearLimite(-0.000123456), "-0.0001235");
-  assert.equal(ic.formatearLimite(0.000000012346), "0.00000001235");   // sin notación científica
+  assert.equal(ic.formatearLimite(0.000000012346), "0.00000001235");
 });
 
 test("los límites pequeños de varianza y σ se distinguen al mostrarlos", function () {
-  // Datos muy pequeños: s² = 0.0000286 (s ≈ 0.0053), n = 10, 95 %
   const r = sinError(ic.intervaloVarianza(10, null, 0.0000286, 95));
   const textos = [r.inferior, r.superior, r.sigmaInferior, r.sigmaSuperior].map(ic.formatearLimite);
   for (const texto of textos) {
     assert.notEqual(Number(texto), 0, texto + " no debe verse como 0");
     assert.ok(texto.replace(/^[-0.]+/, "").length >= 4, texto + " debe tener 4 cifras significativas");
   }
-  // El texto mostrado coincide con el valor calculado hasta la cuarta cifra significativa.
   assert.ok(Math.abs(Number(textos[2]) - r.sigmaInferior) < 5e-4 * r.sigmaInferior);
-  // Elevar σ al cuadrado devuelve el límite de σ² (se muestra igual).
   assert.equal(ic.formatearLimite(r.sigmaSuperior * r.sigmaSuperior), ic.formatearLimite(r.superior));
 });
 
@@ -206,14 +190,12 @@ test("varianza: valida s, s² y el tamaño", function () {
 // ---------- Tamaño de muestra ----------
 
 test("tamaño de muestra para la media (Walpole 9.2: n = 139)", function () {
-  // σ = 0.3, e = 0.05, 95 %: (1.96 · 0.3 / 0.05)² = 138.29 → 139
   const r = sinError(ic.tamanoMuestraMedia(0.3, 0.05, 95));
   cercano(r.valor, 138.2925175449885);
   assert.equal(r.n, 139);
 });
 
 test("tamaño de muestra para una proporción (Walpole 9.14: n = 2090)", function () {
-  // p = 0.68, e = 0.02, 95 %: 1.96² · 0.68 · 0.32 / 0.02² = 2089.75 → 2090
   const r = sinError(ic.tamanoMuestraProporcion(0.68, 0.02, 95));
   cercano(r.valor, 2089.7535984576043);
   assert.equal(r.n, 2090);
@@ -233,7 +215,6 @@ test("valida el nivel de confianza", function () {
   for (const confianza of [0, 100, -5, 150, NaN, null]) {
     assert.match(ic.intervaloMediaZ(36, 2.6, 0.3, true, confianza).error, /nivel de confianza/);
   }
-  // Muy cercano a 100: el valor crítico queda fuera del rango de la Parte 4.
   assert.match(ic.intervaloMediaZ(36, 2.6, 0.3, true, 99.99999).error, /No se pudo obtener el valor crítico/);
 });
 

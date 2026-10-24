@@ -1,5 +1,4 @@
 // Pruebas de js/selector.js con el ejecutor de pruebas incluido en Node.
-// Ejecutar desde la carpeta del proyecto:  node --test
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -9,7 +8,6 @@ const {
 } = require("../js/selector.js");
 const { identificarMetodo } = require("../js/metodos.js");
 
-// Atajo: toca varias tarjetas en orden, empezando sin nada elegido.
 function tocarTodo(tarjetas) {
   let seleccion = seleccionVacia();
   for (const [pregunta, valor] of tarjetas) seleccion = tocarOpcion(seleccion, pregunta, valor);

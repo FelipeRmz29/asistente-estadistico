@@ -1,9 +1,4 @@
 // Pruebas de los intervalos de dos muestras de js/intervalos.js (Parte 7).
-// Ejecutar desde la carpeta del proyecto:  node --test
-//
-// Los resultados esperados se calcularon a mano con las fórmulas del formulario y
-// valores críticos de tablas (por ejemplo, F_0.025(9,15) = 3.12 y F_0.025(15,9) = 3.77);
-// los decimales completos vienen de las funciones de la Parte 4, ya probadas aparte.
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -11,13 +6,11 @@ const ic = require("../js/intervalos.js");
 const est = require("../js/estadistica.js");
 const vc = require("../js/valores-criticos.js");
 
-// Compara con 9 cifras de precisión.
 function cercano(real, esperado) {
   assert.ok(Math.abs(real - esperado) < 1e-9 * Math.max(1, Math.abs(esperado)),
     real + " debería ser " + esperado);
 }
 
-// Compara con una tolerancia (para resultados redondeados a mano).
 function aproximado(real, esperado, tolerancia) {
   assert.ok(Math.abs(real - esperado) <= tolerancia, real + " debería estar cerca de " + esperado);
 }
@@ -30,26 +23,23 @@ function sinError(resultado) {
 // ---------- Dos medias con Z ----------
 
 test("dos medias, n ≥ 30 y σ desconocidas: Z con s₁ y s₂", function () {
-  // n₁ = 50, x̄₁ = 76, s₁ = 6; n₂ = 75, x̄₂ = 82, s₂ = 8; 96 %
   const r = sinError(ic.intervaloDosMediasZ(50, 76, 6, 75, 82, 8, false, 96));
   assert.equal(r.alfa, 0.04);
-  cercano(r.critico.valor, 2.0537489106318216);           // z_{0.02}
-  assert.equal(r.critico.areaIzquierda, 0.98);             // deja α/2 = 0.02 a la derecha
+  cercano(r.critico.valor, 2.0537489106318216);
+  assert.equal(r.critico.areaIzquierda, 0.98);
   cercano(r.diferencia, -6);
-  cercano(r.errorEstandar, Math.sqrt(36 / 50 + 64 / 75)); // 1.2543
+  cercano(r.errorEstandar, Math.sqrt(36 / 50 + 64 / 75));
   cercano(r.margen, 2.576070344212219);
   aproximado(r.inferior, -8.5761, 1e-4);
   aproximado(r.superior, -3.4239, 1e-4);
 });
 
 test("dos medias con σ₁ y σ₂ conocidas: Z con σ, aunque n sea pequeña", function () {
-  // n₁ = 40, x̄₁ = 100, σ₁ = 5; n₂ = 60, x̄₂ = 95, σ₂ = 8; 95 %
   const r = sinError(ic.intervaloDosMediasZ(40, 100, 5, 60, 95, 8, true, 95));
-  cercano(r.errorEstandar, Math.sqrt(25 / 40 + 64 / 60)); // 1.3006
+  cercano(r.errorEstandar, Math.sqrt(25 / 40 + 64 / 60));
   aproximado(r.margen, 2.5492, 1e-4);
   aproximado(r.inferior, 2.4508, 1e-4);
   aproximado(r.superior, 7.5492, 1e-4);
-  // Con σ conocidas el formulario usa Z sin importar n.
   const pequenas = sinError(ic.intervaloDosMediasZ(9, 20, 3, 16, 18, 4, true, 90));
   cercano(pequenas.critico.valor, 1.6448536269514722);
 });
@@ -68,11 +58,10 @@ test("dos medias con Z y σ desconocidas: no se permite si una muestra es peque�
 // ---------- Dos medias con t, varianzas iguales ----------
 
 test("dos medias con t y varianzas iguales (varianza combinada)", function () {
-  // n₁ = 12, x̄₁ = 85, s₁ = 4; n₂ = 10, x̄₂ = 81, s₂ = 5; 90 %  →  0.69 ≤ μ₁ − μ₂ ≤ 7.31
   const r = sinError(ic.intervaloDosMediasTIguales(12, 85, 4, 10, 81, 5, 90));
-  assert.equal(r.gl, 20);                                          // n₁ + n₂ − 2
-  cercano(r.sp, Math.sqrt((11 * 16 + 9 * 25) / 20));               // 4.4777
-  cercano(r.critico.valor, 1.724718242920786);                     // t_{0.05,20}
+  assert.equal(r.gl, 20);
+  cercano(r.sp, Math.sqrt((11 * 16 + 9 * 25) / 20));
+  cercano(r.critico.valor, 1.724718242920786);
   assert.equal(r.critico.parametros, "gl = 20");
   cercano(r.errorEstandar, r.sp * Math.sqrt(1 / 12 + 1 / 10));
   aproximado(r.margen, 3.3067, 1e-4);
@@ -88,17 +77,15 @@ test("t con varianzas iguales: solo con muestras pequeñas", function () {
 // ---------- Dos medias con t, varianzas diferentes ----------
 
 test("dos medias con t y varianzas diferentes (gl de Welch redondeados hacia abajo)", function () {
-  // Mismos datos que arriba, pero sin suponer varianzas iguales
   const r = sinError(ic.intervaloDosMediasTDiferentes(12, 85, 4, 10, 81, 5, 90));
   cercano(r.varMedia1, 16 / 12);
   cercano(r.varMedia2, 25 / 10);
-  // ν = (16/12 + 25/10)² / [(16/12)²/11 + (25/10)²/9]
   const nu = Math.pow(16 / 12 + 25 / 10, 2) / (Math.pow(16 / 12, 2) / 11 + Math.pow(25 / 10, 2) / 9);
   cercano(r.glWelch, nu);
   aproximado(r.glWelch, 17.1652, 1e-4);
-  assert.equal(r.gl, 17);                                          // ⌊17.1652⌋, no 17.17 ni 18
+  assert.equal(r.gl, 17);
   assert.equal(r.critico.parametros, "gl = 17");
-  aproximado(r.critico.valor, 1.7396, 1e-4);                       // tabla: t_{0.05,17} = 1.740
+  aproximado(r.critico.valor, 1.7396, 1e-4);
   cercano(r.errorEstandar, Math.sqrt(16 / 12 + 25 / 10));
   aproximado(r.inferior, 0.5940, 1e-4);
   aproximado(r.superior, 7.4060, 1e-4);
@@ -120,7 +107,6 @@ test("Welch con una muestra grande y una pequeña es válido; con ambas grandes 
 // ---------- Dos proporciones ----------
 
 test("dos proporciones con x (0.05 − 0.04; −0.0017 ≤ π₁ − π₂ ≤ 0.0217)", function () {
-  // x₁ = 75 de n₁ = 1500; x₂ = 80 de n₂ = 2000; 90 %
   const r = sinError(ic.intervaloDosProporciones(1500, 75, null, 2000, 80, null, 90));
   cercano(r.p1, 0.05);
   cercano(r.q2, 0.96);
@@ -143,7 +129,7 @@ test("dos proporciones con p̂ da lo mismo que con x; se pueden mezclar", functi
 });
 
 test("dos proporciones: avisa con n·p o n·q < 5 y con límites fuera de [−1, 1]", function () {
-  const r = sinError(ic.intervaloDosProporciones(20, 2, null, 30, 15, null, 95)); // n₁·p₁ = 2
+  const r = sinError(ic.intervaloDosProporciones(20, 2, null, 30, 15, null, 95));
   assert.match(r.advertencias[0], /n·p ≥ 5 y n·q ≥ 5 en cada muestra/);
   const extremo = sinError(ic.intervaloDosProporciones(3, 1, null, 3, 2, null, 99.9));
   assert.ok(extremo.advertencias.some(function (a) { return /fuera de \[−1, 1\]/.test(a); }));
@@ -168,10 +154,9 @@ test("dos proporciones: con p = 0 o p = 1 en una muestra el método no aplica", 
 // ---------- Muestras pareadas ----------
 
 test("pareadas con n, d̄ y s_d: t con ν = n − 1", function () {
-  // 12 pares, d̄ = 0.5, s_d = 0.8, 95 %
   const r = sinError(ic.intervaloPareadas(12, 0.5, 0.8, 95));
   assert.equal(r.gl, 11);
-  cercano(r.critico.valor, 2.2009851600916406);                    // t_{0.025,11}
+  cercano(r.critico.valor, 2.2009851600916406);
   cercano(r.errorEstandar, 0.8 / Math.sqrt(12));
   aproximado(r.margen, 0.5083, 1e-4);
   aproximado(r.inferior, -0.0083, 1e-4);
@@ -185,11 +170,11 @@ test("pareadas desde dos listas: primero las diferencias, luego una sola muestra
   assert.deepEqual(dif.diferencias, [5, 2, 3, 2, 3, -1, 4, 5]);
   const d = est.calcularDescriptivos(dif.diferencias);
   cercano(d.media, 2.875);
-  cercano(d.desviacion, Math.sqrt(26.875 / 7));                     // 1.9594
+  cercano(d.desviacion, Math.sqrt(26.875 / 7));
 
   const r = sinError(ic.intervaloPareadas(d.n, d.media, d.desviacion, 95));
-  assert.equal(r.gl, 7);                                           // n − 1 con n = 8 pares, no 8 + 8 − 2
-  cercano(r.critico.valor, 2.364624251592785);                     // t_{0.025,7}
+  assert.equal(r.gl, 7);
+  cercano(r.critico.valor, 2.364624251592785);
   aproximado(r.margen, 1.6381, 1e-4);
   aproximado(r.inferior, 1.2369, 1e-4);
   aproximado(r.superior, 4.5131, 1e-4);
@@ -211,12 +196,10 @@ test("pareadas: valida n, d̄ y s_d", function () {
 // ---------- Cociente de varianzas ----------
 
 test("cociente de varianzas: F con ν₁ = n₁ − 1 y ν₂ = n₂ − 1", function () {
-  // n₁ = 10, S₁² = 4; n₂ = 16, S₂² = 2.5; 95 %
   const r = sinError(ic.intervaloCocienteVarianzas(10, null, 4, 16, null, 2.5, 95));
   assert.equal(r.gl1, 9);
   assert.equal(r.gl2, 15);
   cercano(r.razon, 1.6);
-  // F_{α/2(ν₁,ν₂)} = F_{0.025}(9, 15) ≈ 3.12 (va dividiendo) y F_{α/2(ν₂,ν₁)} = F_{0.025}(15, 9) ≈ 3.77 (va multiplicando)
   aproximado(r.fInferior.valor, 3.12, 0.005);
   aproximado(r.fSuperior.valor, 3.77, 0.005);
   assert.equal(r.fInferior.areaIzquierda, 0.975);
@@ -257,7 +240,6 @@ test("cociente de varianzas: valida n, s y s² de cada muestra", function () {
 // ---------- Datos faltantes o inválidos comunes a las medias ----------
 
 test("dos medias: valida n, medias, desviaciones y nivel de confianza", function () {
-  // Z
   assert.match(ic.intervaloDosMediasZ(null, 76, 6, 75, 82, 8, true, 95).error, /Falta el tamaño de la muestra 1 \(n₁\)/);
   assert.match(ic.intervaloDosMediasZ(50, 76, 6, 75.5, 82, 8, true, 95).error, /tamaño de la muestra 2 \(n₂\).*entero/);
   assert.match(ic.intervaloDosMediasZ(50, null, 6, 75, 82, 8, true, 95).error, /Falta la media de la muestra 1 \(x̄₁\)/);
@@ -265,7 +247,6 @@ test("dos medias: valida n, medias, desviaciones y nivel de confianza", function
   assert.match(ic.intervaloDosMediasZ(50, 76, null, 75, 82, 8, true, 95).error, /Falta la desviación estándar poblacional de la muestra 1 \(σ₁\)/);
   assert.match(ic.intervaloDosMediasZ(50, 76, 6, 75, 82, null, false, 95).error, /Falta la desviación estándar muestral de la muestra 2 \(s₂\)/);
   assert.match(ic.intervaloDosMediasZ(50, 76, -6, 75, 82, 8, true, 95).error, /σ₁\) debe ser mayor que 0/);
-  // t, varianzas iguales y diferentes
   for (const metodo of [ic.intervaloDosMediasTIguales, ic.intervaloDosMediasTDiferentes]) {
     assert.match(metodo(1, 85, 4, 10, 81, 5, 90).error, /muestra 1 \(n₁\).*mayor o igual que 2.*un solo dato/);
     assert.match(metodo(10, 85, 4, null, 81, 5, 90).error, /Falta el tamaño de la muestra 2/);
@@ -273,7 +254,6 @@ test("dos medias: valida n, medias, desviaciones y nivel de confianza", function
     assert.match(metodo(10, 85, null, 10, 81, 5, 90).error, /Falta la desviación estándar muestral de la muestra 1 \(s₁\)/);
     assert.match(metodo(10, 85, 4, 10, 81, 0, 90).error, /muestra 2 \(s₂\) debe ser mayor que 0/);
   }
-  // Nivel de confianza
   for (const confianza of [0, 100, -5, NaN, null]) {
     assert.match(ic.intervaloDosMediasZ(50, 76, 6, 75, 82, 8, true, confianza).error, /nivel de confianza/);
     assert.match(ic.intervaloDosMediasTIguales(10, 85, 4, 10, 81, 5, confianza).error, /nivel de confianza/);

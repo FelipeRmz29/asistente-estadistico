@@ -1,22 +1,4 @@
 // Archivo principal de JavaScript.
-// Parte 2: muestra u oculta los campos del formulario según las opciones elegidas.
-// Parte 3: lee las listas de datos y muestra sus estadísticos descriptivos
-//          (las funciones de cálculo están en js/estadistica.js).
-// Parte 5: muestra qué método corresponde al ejercicio
-//          (las reglas están en js/metodos.js).
-// Parte 6: calcula y muestra los intervalos de confianza de una muestra
-//          (las fórmulas están en js/intervalos.js).
-// Parte 7: calcula y muestra los intervalos de confianza de dos muestras
-//          (las fórmulas están en js/intervalos.js).
-// Parte 8: muestra el criterio de decisión del formulario para los intervalos de
-//          dos muestras (las reglas están en js/decisiones.js).
-// Parte 9: resuelve y muestra las pruebas de hipótesis
-//          (las fórmulas y la decisión están en js/pruebas.js).
-// Parte 10: los textos y tablas de cada resultado se preparan en js/presentacion.js;
-//          aquí solo se ponen en la página, con las mismas secciones en todos los casos.
-// Selector con tarjetas (paso 1): el tipo, el caso, σ y las varianzas se eligen con
-//          tarjetas que se marcan y desmarcan; qué preguntas aparecen lo decide
-//          js/selector.js y el método se muestra en vivo con js/metodos.js.
 
 const formulario = document.getElementById("formulario-ejercicio");
 const seccionSelector = document.getElementById("selector");
@@ -33,12 +15,10 @@ const contenidoIntervalo = document.getElementById("contenido-intervalo");
 const tarjetaPrueba = document.getElementById("prueba");
 const contenidoPrueba = document.getElementById("contenido-prueba");
 const notaRedondeo = document.getElementById("nota-redondeo");
-notaRedondeo.textContent = NOTA_REDONDEO; // se ve cuando hay números en la página
+notaRedondeo.textContent = NOTA_REDONDEO;
 
-// Opciones que deciden qué bloques se ven (coinciden con los atributos data-* del HTML).
 const CRITERIOS = ["tipo", "caso", "formato", "sigma"];
 
-// Nombres legibles para el resumen de la selección.
 const NOMBRES = {
   intervalo: "Intervalo de confianza",
   prueba: "Prueba de hipótesis",
@@ -50,7 +30,6 @@ const NOMBRES = {
   diferentes: "varianzas diferentes",
 };
 
-// Campos de lista de cada caso: [id del campo, nombre que se muestra].
 const LISTAS_POR_CASO = {
   "una-media": [["media-datos", "Muestra"]],
   "una-proporcion": [["prop-datos", "Muestra"]],
@@ -61,7 +40,6 @@ const LISTAS_POR_CASO = {
   "pareadas": [["par1-datos", "Muestra 1"], ["par2-datos", "Muestra 2"]],
 };
 
-// Campos de tamaño de muestra de cada caso en estadísticas resumidas.
 const TAMANOS_POR_CASO = {
   "una-media": ["media-n"],
   "una-proporcion": ["prop-n"],
@@ -72,12 +50,8 @@ const TAMANOS_POR_CASO = {
   "pareadas": ["par-n"],
 };
 
-// Lo elegido en las tarjetas del paso 1: { tipo, parametro, muestras, relacion, sigma, varianzas }.
 let caracteristicas = seleccionVacia();
 
-// Lee las opciones elegidas. Si una opción no se ha elegido, su valor es "".
-// tipo, caso, sigma y varianzas vienen de las tarjetas; σ y las varianzas quedan en ""
-// si el caso no las usa.
 function leerSeleccion() {
   const campos = formulario.elements;
   const elegido = datosParaMetodo(caracteristicas);
@@ -87,13 +61,10 @@ function leerSeleccion() {
     formato: campos.formato.value,
     sigma: elegido.sigma,
     varianzas: elegido.varianzas,
-    alternativa: campos.alternativa.value, // solo pruebas de hipótesis
+    alternativa: campos.alternativa.value,
   };
 }
 
-// Un bloque se muestra solo si cada atributo data-* que tiene
-// incluye el valor elegido. Ejemplo: data-formato="lista resumen"
-// acepta tanto "lista" como "resumen", pero no "" (sin elegir).
 function debeMostrarse(bloque, seleccion) {
   for (const criterio of CRITERIOS) {
     const permitidos = bloque.dataset[criterio];
@@ -111,15 +82,12 @@ function actualizarCampos() {
     bloque.hidden = !debeMostrarse(bloque, seleccion);
   }
 
-  // Los avisos de los pasos 2 y 4 solo se ven mientras falte lo que necesitan.
   avisoNivel.hidden = seleccion.tipo !== "";
   avisoDatos.hidden = seleccion.caso !== "" && seleccion.formato !== "";
 }
 
 // ---------- Selector con tarjetas (paso 1) ----------
 
-// Muestra solo las preguntas que tienen sentido, marca las tarjetas elegidas y
-// actualiza el método.
 function actualizarSelector() {
   const visibles = preguntasVisibles(caracteristicas);
   for (const grupo of seccionSelector.querySelectorAll(".grupo-tarjetas")) {
@@ -132,10 +100,6 @@ function actualizarSelector() {
   actualizarVistaMetodo();
 }
 
-// Tamaños de muestra que ya se pueden leer de la página, sin mostrar errores:
-// en estadísticas resumidas, los campos n; en lista, cuántos valores tiene cada lista.
-// tamanos es null si todavía no se elige el formato. listaConError indica que una
-// lista tiene un dato que no es número (y por eso no se pudo contar).
 function tamanosEnVivo(caso, formato) {
   if (formato === "resumen") return { tamanos: leerTamanosResumen(caso), listaConError: false };
   if (formato !== "lista") return { tamanos: null, listaConError: false };
@@ -153,7 +117,6 @@ function tamanosEnVivo(caso, formato) {
   return { tamanos: tamanos, listaConError: listaConError };
 }
 
-// Dónde escribir el tamaño de muestra cuando el método depende de él.
 function dondeEscribirTamano(formato, listaConError) {
   if (formato === "resumen") return "Escribe el tamaño de muestra en el paso 4 (Datos del ejercicio).";
   if (formato === "lista") {
@@ -164,8 +127,6 @@ function dondeEscribirTamano(formato, listaConError) {
   return "Elige cómo vienen los datos (paso 3) y escribe el tamaño de muestra o la lista de datos (paso 4).";
 }
 
-// Debajo de las tarjetas: el método que corresponde, pero solo cuando identificarMetodo
-// (js/metodos.js) lo identifica con lo elegido. Si falta algo, se pregunta por ello.
 function actualizarVistaMetodo() {
   const nueva = document.createElement("div");
   const pendientes = preguntasPendientes(caracteristicas);
@@ -206,13 +167,11 @@ function actualizarVistaMetodo() {
   }
 
   vistaMetodo.dataset.estado = estadoVista;
-  // Solo se reemplaza si cambió, para que el lector de pantalla no repita lo mismo en cada tecla.
   if (vistaMetodo.textContent !== nueva.textContent) {
     vistaMetodo.replaceChildren(...nueva.childNodes);
   }
 }
 
-// Tocar una tarjeta la elige o la quita; las respuestas que dejan de tener sentido se borran.
 function tocarTarjeta(evento) {
   const tarjeta = evento.target.closest(".tarjeta-opcion");
   if (!tarjeta) return;
@@ -220,27 +179,22 @@ function tocarTarjeta(evento) {
   alCambiarCaracteristicas();
 }
 
-// Quita todas las tarjetas elegidas; lo escrito en los demás pasos no se borra.
 function limpiarSeleccion() {
   caracteristicas = seleccionVacia();
   alCambiarCaracteristicas();
 }
 
-// Como un cambio en el formulario: los campos visibles cambian y los resultados
-// anteriores se borran, porque ya no corresponden a lo elegido.
 function alCambiarCaracteristicas() {
   actualizarSelector();
   actualizarCampos();
   limpiarResultados();
 }
 
-// Muestra un mensaje debajo del botón. Los errores se ven en rojo.
 function mostrarMensaje(texto, esError) {
   estado.textContent = texto;
   estado.className = esError ? "error" : "";
 }
 
-// Borra el mensaje, los resultados y las marcas de error anteriores.
 function limpiarResultados() {
   mostrarMensaje("", false);
   resultados.hidden = true;
@@ -257,14 +211,11 @@ function limpiarResultados() {
   }
 }
 
-// Revisa que estén todas las opciones necesarias. Si los datos vienen en
-// lista, además calcula y muestra los estadísticos descriptivos.
 function revisarDatos(evento) {
   evento.preventDefault();
   limpiarResultados();
 
   const seleccion = leerSeleccion();
-  // Las preguntas del paso 1 que tienen sentido y siguen sin respuesta (js/selector.js).
   const faltantes = preguntasPendientes(caracteristicas).map(function (pregunta) {
     return TEXTOS_SELECTOR[pregunta].falta + " (paso 1)";
   });
@@ -279,10 +230,9 @@ function revisarDatos(evento) {
     return;
   }
 
-  // Nivel de confianza o de significancia, según el tipo de ejercicio.
   let nivel;
-  let confianza = null; // en %, solo para intervalos
-  let alfa = null;      // solo para pruebas de hipótesis
+  let confianza = null;
+  let alfa = null;
   if (seleccion.tipo === "intervalo") {
     confianza = Number(formulario.elements["nivel-confianza"].value);
     if (!(confianza > 0 && confianza < 100)) {
@@ -305,24 +255,20 @@ function revisarDatos(evento) {
     NOMBRES[seleccion.formato],
     nivel,
   ];
-  // σ y las varianzas solo tienen valor en los casos que las usan.
   if (seleccion.sigma !== "") partes.push(NOMBRES[seleccion.sigma]);
   if (seleccion.varianzas !== "") partes.push(NOMBRES[seleccion.varianzas]);
   const resumen = "Selección: " + partes.join(" · ") + ".";
 
-  // Tamaños de muestra: en lista se cuentan los datos leídos (y se muestran sus
-  // estadísticos); en estadísticas resumidas se leen los campos n.
-  let muestras = null; // listas leídas: [{ nombre, valores }] (solo en formato lista)
+  let muestras = null;
   let tamanos;
   if (seleccion.formato === "lista") {
     muestras = mostrarEstadisticos(seleccion.caso);
-    if (muestras === null) return; // hay datos inválidos; el error ya se mostró
+    if (muestras === null) return;
     tamanos = muestras.map(function (muestra) { return muestra.valores.length; });
   } else {
     tamanos = leerTamanosResumen(seleccion.caso);
   }
 
-  // Identificar el método (las reglas están en js/metodos.js).
   const metodo = identificarMetodo({
     tipo: seleccion.tipo,
     caso: seleccion.caso,
@@ -342,7 +288,6 @@ function revisarDatos(evento) {
     return;
   }
 
-  // Intervalos de una muestra (Parte 6) y de dos muestras (Parte 7).
   const esUnaMuestra = INTERVALOS_UNA_MUESTRA.includes(metodo.clave);
   const esDosMuestras = INTERVALOS_DOS_MUESTRAS.includes(metodo.clave);
   if (seleccion.tipo === "intervalo" && (esUnaMuestra || esDosMuestras)) {
@@ -378,19 +323,15 @@ function revisarDatos(evento) {
     "La resolución de este caso no está implementada.", false);
 }
 
-// Lee un campo numérico. Si está vacío devuelve null (dato faltante); si el
-// texto no es un número devuelve NaN, que las validaciones rechazan.
 function leerNumero(id) {
   const texto = document.getElementById(id).value.trim();
   return texto === "" ? null : Number(texto);
 }
 
-// Lee los campos n del caso elegido (estadísticas resumidas).
 function leerTamanosResumen(caso) {
   return TAMANOS_POR_CASO[caso].map(leerNumero);
 }
 
-// Muestra el método identificado, o por qué no se pudo determinar.
 function mostrarMetodo(metodo) {
   if (metodo.estado === "identificado") {
     agregarElemento("h3", metodo.metodo, contenidoMetodo);
@@ -406,12 +347,9 @@ function mostrarMetodo(metodo) {
   tarjetaMetodo.hidden = false;
 }
 
-// Lee las listas del caso elegido y muestra sus estadísticos.
-// Devuelve las muestras leídas: [{ nombre, valores }, ...].
-// Si algún dato no es válido, muestra los errores y devuelve null.
 function mostrarEstadisticos(caso) {
   const esProporcion = caso === "una-proporcion" || caso === "dos-proporciones";
-  const muestras = []; // cada elemento: { nombre, valores }
+  const muestras = [];
   const camposConError = [];
   const errores = [];
 
@@ -426,7 +364,6 @@ function mostrarEstadisticos(caso) {
     }
   }
 
-  // En datos pareados, además se calculan las diferencias de cada par.
   let diferencias = null;
   if (caso === "pareadas" && errores.length === 0) {
     const resultado = calcularDiferencias(muestras[0].valores, muestras[1].valores);
@@ -447,7 +384,6 @@ function mostrarEstadisticos(caso) {
     return null;
   }
 
-  // Estadísticos de cada muestra.
   for (const muestra of muestras) {
     agregarElemento("h3", muestra.nombre);
     agregarElemento("p", "Valores leídos (" + muestra.valores.length + "): " + muestra.valores.join(", "));
@@ -459,7 +395,6 @@ function mostrarEstadisticos(caso) {
     }
   }
 
-  // Diferencias pareadas: tabla par por par y sus estadísticos.
   if (diferencias !== null) {
     agregarElemento("h3", "Diferencias (d = muestra 1 − muestra 2)");
     const filasPares = [];
@@ -478,12 +413,6 @@ function mostrarEstadisticos(caso) {
 
 // ---------- Datos del ejercicio ----------
 
-// Reúne los datos del caso: de las listas (formato lista) o de los campos de
-// estadísticas resumidas. La usan los intervalos (Partes 6 y 7) y las pruebas de
-// hipótesis (Parte 9), así que ambos trabajan con los mismos datos.
-// muestras: las listas leídas ([{ nombre, valores }, ...]) o null en estadísticas resumidas.
-// Un campo vacío se devuelve como null; las validaciones están en intervalos.js y pruebas.js.
-// σ solo se toma de los campos de σ conocida: una s nunca se usa como σ.
 function leerDatosCaso(clave, sigma, muestras) {
   const listas = muestras === null ? null : muestras.map(function (muestra) { return muestra.valores; });
   const sigmaConocida = sigma === "conocida";
@@ -512,7 +441,6 @@ function leerDatosCaso(clave, sigma, muestras) {
     } else {
       n = leerNumero("media-n"); media = leerNumero("media-xbarra"); s = leerNumero("media-s");
     }
-    // Z: con σ conocida se usa σ; si no, s (el formulario lo permite solo con n ≥ 30).
     const desviacion = sigmaConocida ? leerNumero("media-sigma") : s;
     return { n: n, media: media, s: s, sigmaConocida: sigmaConocida, desviacion: desviacion };
   }
@@ -542,7 +470,6 @@ function leerDatosCaso(clave, sigma, muestras) {
   }
 
   if (clave === "pareadas") {
-    // Se calculan las diferencias d = muestra 1 − muestra 2 y se trabaja con ellas como una muestra.
     if (listas) {
       const d = calcularDescriptivos(calcularDiferencias(listas[0], listas[1]).diferencias);
       return { n: d.n, mediaD: d.media, desvD: d.desviacion };
@@ -550,7 +477,6 @@ function leerDatosCaso(clave, sigma, muestras) {
     return { n: leerNumero("par-n"), mediaD: leerNumero("par-dbarra"), desvD: leerNumero("par-sd") };
   }
 
-  // Dos medias (muestras independientes)
   let n1, media1, s1, n2, media2, s2;
   if (listas) {
     const a = calcularDescriptivos(listas[0]);
@@ -560,11 +486,9 @@ function leerDatosCaso(clave, sigma, muestras) {
   } else {
     n1 = leerNumero("dm1-n"); media1 = leerNumero("dm1-xbarra");
     n2 = leerNumero("dm2-n"); media2 = leerNumero("dm2-xbarra");
-    // Los campos s₁ y s₂ solo existen cuando σ es desconocida.
     s1 = sigma === "desconocida" ? leerNumero("dm1-s") : null;
     s2 = sigma === "desconocida" ? leerNumero("dm2-s") : null;
   }
-  // Z: con σ conocidas se usan σ₁ y σ₂ (campos del formulario); si no, s₁ y s₂ (solo con n ≥ 30).
   return {
     n1: n1, media1: media1, s1: s1, n2: n2, media2: media2, s2: s2, sigmaConocida: sigmaConocida,
     desv1: sigmaConocida ? leerNumero("dm1-sigma") : s1,
@@ -574,12 +498,8 @@ function leerDatosCaso(clave, sigma, muestras) {
 
 // ---------- Intervalos de confianza de una muestra (Parte 6) ----------
 
-// Métodos (claves de js/metodos.js) cuyo intervalo ya se calcula.
 const INTERVALOS_UNA_MUESTRA = ["media-z", "media-t", "proporcion", "varianza"];
 
-// Reúne los datos del caso (leerDatosCaso), calcula el intervalo con
-// js/intervalos.js y prepara lo que se muestra. Devuelve { error } si un dato
-// falta o no es válido.
 function calcularIntervaloUnaMuestra(clave, sigma, muestras, confianza) {
   const d = leerDatosCaso(clave, sigma, muestras);
 
@@ -597,7 +517,6 @@ function calcularIntervaloUnaMuestra(clave, sigma, muestras, confianza) {
     return presentarVarianza(r, d.n, d.s, confianza);
   }
 
-  // Una media
   if (clave === "media-t") {
     const r = intervaloMediaT(d.n, d.media, d.s, confianza);
     if (r.error) return r;
@@ -606,7 +525,6 @@ function calcularIntervaloUnaMuestra(clave, sigma, muestras, confianza) {
 
   const r = intervaloMediaZ(d.n, d.media, d.desviacion, d.sigmaConocida, confianza);
   if (r.error) return r;
-  // El tamaño de muestra del formulario usa σ, así que solo se calcula con σ conocida.
   const errorDeseado = d.sigmaConocida ? leerNumero("media-error") : null;
   const tamano = errorDeseado === null ? null : tamanoMuestraMedia(d.desviacion, errorDeseado, confianza);
   return presentarMediaZ(r, d.n, d.media, d.desviacion, d.sigmaConocida, confianza, tamano, errorDeseado);
@@ -614,14 +532,11 @@ function calcularIntervaloUnaMuestra(clave, sigma, muestras, confianza) {
 
 // ---------- Intervalos de confianza de dos muestras (Parte 7) ----------
 
-// Métodos (claves de js/metodos.js) de dos muestras cuyo intervalo ya se calcula.
 const INTERVALOS_DOS_MUESTRAS = [
   "dos-medias-z", "dos-medias-t-iguales", "dos-medias-t-diferentes",
   "dos-proporciones", "cociente-varianzas", "pareadas",
 ];
 
-// Igual que calcularIntervaloUnaMuestra, pero con dos listas o dos juegos de campos.
-// Devuelve { error } si un dato falta o no es válido.
 function calcularIntervaloDosMuestras(clave, sigma, muestras, confianza) {
   const d = leerDatosCaso(clave, sigma, muestras);
 
@@ -643,7 +558,6 @@ function calcularIntervaloDosMuestras(clave, sigma, muestras, confianza) {
     return presentarPareadas(r, d.n, d.mediaD, d.desvD, confianza);
   }
 
-  // Dos medias (muestras independientes)
   if (clave === "dos-medias-t-iguales") {
     const r = intervaloDosMediasTIguales(d.n1, d.media1, d.s1, d.n2, d.media2, d.s2, confianza);
     if (r.error) return r;
@@ -660,8 +574,6 @@ function calcularIntervaloDosMuestras(clave, sigma, muestras, confianza) {
   return presentarDosMediasZ(r, d.n1, d.media1, d.desv1, d.n2, d.media2, d.desv2, d.sigmaConocida, confianza);
 }
 
-// Muestra el criterio aplicado y la decisión, o por qué no hay decisión automática.
-// conAdvertencias: el intervalo tiene advertencias, y la decisión depende de él.
 function mostrarDecision(d, conAdvertencias, contenedor) {
   agregarElemento("h3", "Criterio de decisión", contenedor);
   if (d.criterio) agregarElemento("p", "Criterio del formulario: " + d.criterio, contenedor);
@@ -678,9 +590,6 @@ function mostrarDecision(d, conAdvertencias, contenedor) {
   }
 }
 
-// Muestra el intervalo con las mismas secciones que la prueba de hipótesis (Parte 10):
-// Datos usados → Procedimiento → Resultado → Interpretación → Supuestos y notas.
-// Los textos se preparan en js/presentacion.js.
 function mostrarIntervalo(p) {
   const c = contenidoIntervalo;
   agregarElemento("h3", "Datos usados", c);
@@ -693,7 +602,6 @@ function mostrarIntervalo(p) {
   agregarTabla(["Paso", "Fórmula", "Sustitución"], p.pasos, c);
 
   agregarElemento("h3", "Resultado", c);
-  // resultado es un texto, o una lista de textos cuando hay más de un intervalo (varianza y σ).
   for (const linea of [].concat(p.resultado)) {
     agregarElemento("p", linea, c).className = "resultado-intervalo";
   }
@@ -702,7 +610,6 @@ function mostrarIntervalo(p) {
   agregarElemento("h3", "Interpretación", c);
   agregarElemento("p", p.interpretacion, c);
 
-  // Criterio de decisión del formulario (js/decisiones.js); solo hay en los casos de dos muestras.
   if (p.decision) {
     mostrarDecision(p.decision, p.advertencias.length > 0, c);
   }
@@ -722,14 +629,12 @@ function mostrarIntervalo(p) {
   notaRedondeo.hidden = false;
 }
 
-// Advertencias sobre el resultado (en rojo), justo debajo de él.
 function mostrarAdvertencias(advertencias, contenedor) {
   for (const aviso of advertencias) {
     agregarElemento("p", "Atención: " + aviso, contenedor).className = "aviso";
   }
 }
 
-// Supuestos y notas en una lista. (La regla de redondeo va una sola vez, en #nota-redondeo.)
 function mostrarNotas(notas, contenedor) {
   if (notas.length === 0) return;
   agregarElemento("h3", "Supuestos y notas", contenedor);
@@ -738,8 +643,6 @@ function mostrarNotas(notas, contenedor) {
   for (const nota of notas) agregarElemento("li", nota, lista);
 }
 
-// Si el cálculo falla, la tarjeta del resultado lo dice y explica por qué, para que
-// no quede solo el método identificado como si hubiera un resultado válido.
 function mostrarSinResultado(tarjeta, contenedor, texto) {
   agregarElemento("h3", "Sin resultado", contenedor);
   agregarElemento("p", texto, contenedor).className = "aviso";
@@ -748,19 +651,15 @@ function mostrarSinResultado(tarjeta, contenedor, texto) {
 
 // ---------- Pruebas de hipótesis (Parte 9) ----------
 
-// Métodos (claves de js/metodos.js) cuya prueba de hipótesis ya se resuelve.
 const PRUEBAS = [
   "media-z", "media-t", "proporcion", "varianza",
   "dos-medias-z", "dos-medias-t-iguales", "dos-medias-t-diferentes",
   "dos-proporciones", "pareadas", "cociente-varianzas",
 ];
 
-// Reúne los datos del caso (los mismos que usan los intervalos), resuelve la prueba
-// con js/pruebas.js y prepara lo que se muestra. Devuelve { error } si un dato falta
-// o no es válido.
 function calcularPrueba(clave, sigma, muestras, alfa, alternativa) {
   const d = leerDatosCaso(clave, sigma, muestras);
-  const h0 = leerNumero("h0-valor"); // no se usa en dos proporciones ni en cociente de varianzas
+  const h0 = leerNumero("h0-valor");
   let r;
   if (clave === "media-z") {
     r = pruebaMediaZ(d.n, d.media, d.desviacion, d.sigmaConocida, h0, alternativa, alfa);
@@ -787,15 +686,12 @@ function calcularPrueba(clave, sigma, muestras, alfa, alternativa) {
   return presentarPrueba(clave, r, d);
 }
 
-// Muestra la prueba con las mismas secciones que el intervalo, más las hipótesis al inicio:
-// Hipótesis → Datos usados → Procedimiento → Resultado → Interpretación → Supuestos y notas.
 function mostrarPrueba(p) {
   const c = contenidoPrueba;
   agregarElemento("h3", "Hipótesis", c);
   agregarElemento("p", "H₀: " + p.hipotesis.h0, c);
   agregarElemento("p", "H₁: " + p.hipotesis.h1 + " (" + p.hipotesis.cola + ")", c);
 
-  // Incluye α, la distribución de referencia y sus grados de libertad.
   agregarElemento("h3", "Datos usados", c);
   agregarTabla(["Dato", "Valor"], p.datos, c);
 
@@ -821,8 +717,6 @@ function mostrarPrueba(p) {
   notaRedondeo.hidden = false;
 }
 
-// Crea un elemento con texto y lo agrega a los resultados (o al contenedor indicado).
-// Se usa textContent para que lo escrito por el usuario se muestre como texto.
 function agregarElemento(etiqueta, texto, contenedor = contenidoResultados) {
   const elemento = document.createElement(etiqueta);
   elemento.textContent = texto;
@@ -830,8 +724,6 @@ function agregarElemento(etiqueta, texto, contenedor = contenidoResultados) {
   return elemento;
 }
 
-// Crea una tabla con encabezados y filas, y la agrega a los resultados
-// (o al contenedor indicado).
 function agregarTabla(encabezados, filas, destino = contenidoResultados) {
   const contenedor = document.createElement("div");
   contenedor.className = "tabla-contenedor";
@@ -859,9 +751,6 @@ function agregarTabla(encabezados, filas, destino = contenidoResultados) {
 
 // ---------- Reiniciar el ejercicio ----------
 
-// Indica si el usuario escribió algo: algún campo de texto o número tiene un
-// valor distinto del que trae el HTML (vacío, o 95 y 0.05 en los niveles).
-// Las opciones elegidas (radios y tarjetas) no cuentan: se vuelven a elegir rápido.
 function hayDatosEscritos() {
   for (const campo of formulario.querySelectorAll("input:not([type=radio]), textarea")) {
     if (campo.value !== campo.defaultValue) return true;
@@ -869,29 +758,22 @@ function hayDatosEscritos() {
   return false;
 }
 
-// Vuelve el ejercicio al estado inicial: borra lo escrito y lo elegido, los
-// resultados y los mensajes. Si había datos escritos, primero pide confirmación.
 function reiniciarEjercicio() {
   if (hayDatosEscritos() && !confirm("¿Borrar los datos escritos y empezar el ejercicio de nuevo?")) {
     return;
   }
-  formulario.reset();   // cada campo vuelve al valor del HTML (y se quitan las tarjetas); no envía el formulario
-  actualizarCampos();   // reset() no dispara "change", así que se ocultan los campos aquí
+  formulario.reset();
+  actualizarCampos();
   limpiarResultados();
-  seccionSelector.querySelector(".tarjeta-opcion").focus(); // para seguir con el teclado desde el paso 1
+  seccionSelector.querySelector(".tarjeta-opcion").focus();
 }
 
-// Cualquier cambio en el formulario actualiza los campos visibles y borra
-// los resultados anteriores, porque ya no corresponden a lo escrito.
-// El método del paso 1 depende del formato y del tamaño de muestra, así que también se actualiza.
 formulario.addEventListener("change", function () {
   actualizarCampos();
   actualizarVistaMetodo();
   limpiarResultados();
 });
-// Mientras se escribe (por ejemplo, n) solo se actualiza el método del paso 1.
 formulario.addEventListener("input", actualizarVistaMetodo);
-// Las tarjetas no son campos del formulario: reset() no las quita por sí solo.
 formulario.addEventListener("reset", function () {
   caracteristicas = seleccionVacia();
   actualizarSelector();
@@ -901,6 +783,5 @@ seccionSelector.addEventListener("click", tocarTarjeta);
 document.getElementById("boton-limpiar-seleccion").addEventListener("click", limpiarSeleccion);
 document.getElementById("boton-reiniciar").addEventListener("click", reiniciarEjercicio);
 
-// Al cargar la página, ocultar todo lo que aún no corresponde.
 actualizarSelector();
 actualizarCampos();

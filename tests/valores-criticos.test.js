@@ -1,16 +1,9 @@
 // Pruebas de js/valores-criticos.js con el ejecutor de pruebas incluido en Node.
-// Ejecutar desde la carpeta del proyecto:  node --test
-//
-// Valores de referencia: los que aparecen en las tablas de los libros de
-// estadística (comentario "tabla"), con más decimales obtenidos de SciPy
-// (scipy.stats.<dist>.ppf) para comprobar que no hay redondeos intermedios.
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const vc = require("../js/valores-criticos.js");
 
-// Comprueba que el resultado no sea un error y que su valor coincida con el
-// esperado en al menos 9 cifras.
 function valorCercano(resultado, esperado) {
   assert.equal(resultado.error, undefined, resultado.error);
   const diferencia = Math.abs(resultado.valor - esperado);
@@ -21,10 +14,10 @@ function valorCercano(resultado, esperado) {
 // ---------- Normal estándar Z ----------
 
 test("Z: valores de tabla", function () {
-  valorCercano(vc.valorCriticoZ(0.9), 1.2815515655446004);   // tabla: 1.2816 (z₀.₁₀)
-  valorCercano(vc.valorCriticoZ(0.95), 1.6448536269514722);  // tabla: 1.645  (z₀.₀₅)
-  valorCercano(vc.valorCriticoZ(0.975), 1.959963984540054);  // tabla: 1.96   (z₀.₀₂₅)
-  valorCercano(vc.valorCriticoZ(0.995), 2.5758293035489004); // tabla: 2.576  (z₀.₀₀₅)
+  valorCercano(vc.valorCriticoZ(0.9), 1.2815515655446004);
+  valorCercano(vc.valorCriticoZ(0.95), 1.6448536269514722);
+  valorCercano(vc.valorCriticoZ(0.975), 1.959963984540054);
+  valorCercano(vc.valorCriticoZ(0.995), 2.5758293035489004);
 });
 
 test("Z: es simétrica y la mediana es 0", function () {
@@ -35,17 +28,15 @@ test("Z: es simétrica y la mediana es 0", function () {
 // ---------- t de Student ----------
 
 test("t: valores de tabla", function () {
-  valorCercano(vc.valorCriticoT(0.975, 10), 2.2281388519862744); // tabla: 2.228
-  valorCercano(vc.valorCriticoT(0.95, 5), 2.0150483733330233);   // tabla: 2.015
-  valorCercano(vc.valorCriticoT(0.995, 20), 2.8453397097861077); // tabla: 2.845
-  valorCercano(vc.valorCriticoT(0.975, 30), 2.0422724563012378); // tabla: 2.042
-  valorCercano(vc.valorCriticoT(0.025, 10), -2.2281388519862744); // simetría
+  valorCercano(vc.valorCriticoT(0.975, 10), 2.2281388519862744);
+  valorCercano(vc.valorCriticoT(0.95, 5), 2.0150483733330233);
+  valorCercano(vc.valorCriticoT(0.995, 20), 2.8453397097861077);
+  valorCercano(vc.valorCriticoT(0.975, 30), 2.0422724563012378);
+  valorCercano(vc.valorCriticoT(0.025, 10), -2.2281388519862744);
 });
 
 test("t: fórmulas exactas con 1 y 2 grados de libertad", function () {
-  // gl = 1 (Cauchy): t = tan(π(p − ½))   -> tabla t₀.₀₂₅,₁ = 12.706
   valorCercano(vc.valorCriticoT(0.975, 1), Math.tan(Math.PI * (0.975 - 0.5)));
-  // gl = 2: t = (2p − 1) / √(2p(1 − p))   -> tabla t₀.₀₅,₂ = 2.920
   valorCercano(vc.valorCriticoT(0.95, 2), (2 * 0.95 - 1) / Math.sqrt(2 * 0.95 * 0.05));
 });
 
@@ -55,13 +46,13 @@ test("redondearGL: siempre hacia abajo al entero inferior", function () {
   assert.equal(vc.redondearGL(17.1), 17);
   assert.equal(vc.redondearGL(20), 20);
   assert.equal(vc.redondearGL(1), 1);
-  assert.equal(vc.redondearGL(13.999999999999998), 14); // solo ruido de punto flotante
+  assert.equal(vc.redondearGL(13.999999999999998), 14);
   assert.equal(vc.redondearGL(13.9999), 13);
 });
 
 test("t, chi-cuadrada y F: los grados de libertad no enteros se redondean hacia abajo", function () {
   const t = vc.valorCriticoT(0.975, 17.37);
-  valorCercano(t, vc.valorCriticoT(0.975, 17).valor); // tabla t₀.₀₂₅,₁₇ = 2.110
+  valorCercano(t, vc.valorCriticoT(0.975, 17).valor);
   assert.equal(t.parametros, "gl = 17");
   assert.equal(vc.valorCriticoT(0.975, 23.9).parametros, "gl = 23");
   assert.equal(vc.valorCriticoT(0.975, 32.9).valor, vc.valorCriticoT(0.975, 32).valor);
@@ -75,37 +66,35 @@ test("t: con muchos grados de libertad se acerca a Z", function () {
   const t = vc.valorCriticoT(0.975, 1000000).valor;
   const z = vc.valorCriticoZ(0.975).valor;
   assert.ok(Math.abs(t - z) < 1e-5);
-  assert.ok(t > z); // la t siempre tiene colas más pesadas
+  assert.ok(t > z);
 });
 
 // ---------- Chi-cuadrada ----------
 
 test("chi-cuadrada: valores de tabla", function () {
-  valorCercano(vc.valorCriticoChi2(0.95, 10), 18.307038053275146);  // tabla: 18.307
-  valorCercano(vc.valorCriticoChi2(0.975, 10), 20.483177350807388); // tabla: 20.483
-  valorCercano(vc.valorCriticoChi2(0.025, 10), 3.2469727802368413); // tabla: 3.247
-  valorCercano(vc.valorCriticoChi2(0.995, 1), 7.879438576622417);   // tabla: 7.879
-  valorCercano(vc.valorCriticoChi2(0.05, 24), 13.848425027170224);  // tabla: 13.848
+  valorCercano(vc.valorCriticoChi2(0.95, 10), 18.307038053275146);
+  valorCercano(vc.valorCriticoChi2(0.975, 10), 20.483177350807388);
+  valorCercano(vc.valorCriticoChi2(0.025, 10), 3.2469727802368413);
+  valorCercano(vc.valorCriticoChi2(0.995, 1), 7.879438576622417);
+  valorCercano(vc.valorCriticoChi2(0.05, 24), 13.848425027170224);
 });
 
 test("chi-cuadrada: fórmula exacta con 2 grados de libertad", function () {
-  // Con gl = 2, P(X ≤ x) = 1 − e^(−x/2), así que x = −2 ln(1 − p).
-  valorCercano(vc.valorCriticoChi2(0.975, 2), -2 * Math.log(0.025)); // tabla: 7.378
+  valorCercano(vc.valorCriticoChi2(0.975, 2), -2 * Math.log(0.025));
   valorCercano(vc.valorCriticoChi2(0.1, 2), -2 * Math.log(0.9));
 });
 
 test("chi-cuadrada con 1 gl es el cuadrado de Z", function () {
-  // P(Z² ≤ z²) = 0.95 cuando z = z₀.₀₂₅
   valorCercano(vc.valorCriticoChi2(0.95, 1), Math.pow(1.959963984540054, 2));
 });
 
 // ---------- F ----------
 
 test("F: valores de tabla", function () {
-  valorCercano(vc.valorCriticoF(0.95, 5, 10), 3.3258345304130104); // tabla: 3.33
-  valorCercano(vc.valorCriticoF(0.95, 10, 5), 4.73506306969342);   // tabla: 4.74
-  valorCercano(vc.valorCriticoF(0.99, 4, 9), 6.422085458153198);   // tabla: 6.42
-  valorCercano(vc.valorCriticoF(0.975, 6, 12), 3.7282921153925073); // tabla: 3.73
+  valorCercano(vc.valorCriticoF(0.95, 5, 10), 3.3258345304130104);
+  valorCercano(vc.valorCriticoF(0.95, 10, 5), 4.73506306969342);
+  valorCercano(vc.valorCriticoF(0.99, 4, 9), 6.422085458153198);
+  valorCercano(vc.valorCriticoF(0.975, 6, 12), 3.7282921153925073);
 });
 
 test("F: el orden de los grados de libertad importa (numerador, denominador)", function () {
@@ -113,7 +102,6 @@ test("F: el orden de los grados de libertad importa (numerador, denominador)", f
 });
 
 test("F: propiedad recíproca F₁₋α(gl1, gl2) = 1 / Fα(gl2, gl1)", function () {
-  // Así se obtiene en clase el valor de la cola izquierda con una tabla de cola derecha.
   valorCercano(vc.valorCriticoF(0.05, 5, 10), 0.21119042878234487);
   valorCercano(vc.valorCriticoF(0.05, 5, 10), 1 / vc.valorCriticoF(0.95, 10, 5).valor);
 });

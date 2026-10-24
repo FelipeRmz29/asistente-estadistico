@@ -1,16 +1,4 @@
-// Presentación de los resultados (Parte 10).
-// Aquí se prepara QUÉ se muestra de cada resultado: las filas de las tablas (datos,
-// valores críticos y pasos con fórmula y sustitución), el resultado, la interpretación
-// y las notas. Las fórmulas y decisiones NO están aquí (están en js/intervalos.js,
-// js/decisiones.js y js/pruebas.js); este archivo solo convierte sus resultados en texto.
-// js/app.js pone estos textos en la página, siempre con las mismas secciones:
-//   Datos usados → Procedimiento → Resultado → Interpretación → Supuestos y notas.
-//
-// Estas funciones no usan la página (document), así que se pueden probar con Node:
-// ver tests/presentacion.test.js.
 
-// Funciones de otros archivos: en el navegador ya están cargadas (index.html carga
-// intervalos.js y decisiones.js antes que este archivo); en Node se cargan con require.
 const herramientas = typeof module !== "undefined"
   ? {
     formatearLimite: require("./intervalos.js").formatearLimite,
@@ -20,39 +8,27 @@ const herramientas = typeof module !== "undefined"
 
 // ---------- Redondeo ----------
 
-// α y α/2 se muestran con hasta 10 cifras significativas para quitar el ruido
-// de la resta (por ejemplo 0.025000000000000022 -> 0.025) sin perder valores
-// pequeños como 0.00005, que con 4 decimales se vería como 0.0001.
 function formatearArea(numero) {
   return String(Number(numero.toPrecision(10)));
 }
 
-// Redondea a 4 decimales solo para mostrar (quita ceros sobrantes: 1.2000 -> 1.2).
 function formatear(numero) {
   return String(Number(numero.toFixed(4)));
 }
 
-// Regla de redondeo de toda la página. Se muestra una sola vez, debajo de los resultados.
-// Los valores p y el caso de una varianza usan formatearLimite (js/intervalos.js) para que un
-// valor pequeño (0.000123) no aparezca como 0.
 const NOTA_REDONDEO = "Redondeo: los valores se muestran con 4 decimales; los valores p y los del caso de una " +
   "varianza, si son menores que 0.1, con 4 cifras significativas. Solo se redondea lo que se muestra: los " +
   "cálculos usan todos los decimales.";
 
-// Qué significa el nivel de confianza. Se muestra una vez, en las notas del intervalo.
 const NOTA_CONFIANZA = "El nivel de confianza se refiere al método: de muchos intervalos calculados así, " +
   "alrededor de ese porcentaje contendría el valor real del parámetro. No es la probabilidad de que el " +
   "parámetro (un valor fijo) esté en este intervalo.";
 
-// Texto cuando no hay resultado. tipo: "intervalo" o "prueba"; error: el mensaje de la validación.
-// Se usa junto al botón y en la tarjeta del resultado, para que no parezca que hay un resultado válido.
 function textoSinResultado(tipo, error) {
   return (tipo === "intervalo" ? "No se pudo calcular el intervalo de confianza: "
     : "No se pudo resolver la prueba de hipótesis: ") + error;
 }
 
-// Filas de la tabla de estadísticos de una lista numérica.
-// x, media y s son los símbolos a mostrar (por ejemplo "d", "d̄" y "s_d").
 function filasDescriptivos(d, x, media, s) {
   const sinVarianza = "No se puede calcular con un solo dato";
   return [
@@ -66,7 +42,6 @@ function filasDescriptivos(d, x, media, s) {
   ];
 }
 
-// Filas de la tabla de una lista de 0 y 1.
 function filasProporcion(p) {
   return [
     ["Total de observaciones", "n", p.n],
@@ -152,7 +127,6 @@ function presentarVarianza(r, n, s, confianza) {
   const datos = [["Tamaño de muestra (n)", n]];
   if (s !== null) datos.push(["Desviación estándar muestral (s)", herramientas.formatearLimite(s)]);
   datos.push(["Varianza muestral (S²)", herramientas.formatearLimite(r.varianza)]);
-  // formatearLimite (js/intervalos.js) conserva cifras en valores pequeños; solo cambia lo que se ve.
   const fl = herramientas.formatearLimite;
   return {
     datos: datos.concat(filasNivel(confianza, r.alfa), [["1 − α/2", formatearArea(1 - r.alfa / 2)]]),
@@ -187,8 +161,6 @@ function presentarVarianza(r, n, s, confianza) {
   };
 }
 
-// Tamaño de muestra: null si no se pidió (sin error deseado), { error } si no se
-// pudo calcular, o los pasos y la conclusión.
 function presentarTamanoMedia(tamano, sigma, errorDeseado) {
   if (tamano === null || tamano.error) return tamano;
   return presentarTamano(tamano, "n = (z_α/2 · σ / e)²",
@@ -210,7 +182,6 @@ function presentarTamano(tamano, formula, sustitucion) {
   };
 }
 
-// Filas comunes: nivel de confianza, α y α/2.
 function filasNivel(confianza, alfa) {
   return [
     ["Nivel de confianza", confianza + " %"],
@@ -219,12 +190,10 @@ function filasNivel(confianza, alfa) {
   ];
 }
 
-// Fila de la tabla de valores críticos: [símbolo, valor, cómo se obtuvo].
 function filaCritico(simbolo, critico) {
   return [simbolo, formatear(critico.valor), critico.descripcion];
 }
 
-// Límites de un intervalo simétrico: centro − e y centro + e.
 function pasosLimites(simbolo, centro, r) {
   return [
     ["Límite inferior", simbolo + " − e", formatear(centro) + " − " + formatear(r.margen) + " = " + formatear(r.inferior)],
@@ -232,8 +201,6 @@ function pasosLimites(simbolo, centro, r) {
   ];
 }
 
-// Interpretación breve del intervalo. Qué significa el nivel de confianza se explica
-// una sola vez en NOTA_CONFIANZA, en lugar de repetirlo aquí.
 function interpretar(confianza, nombre, simbolo, r) {
   return "Con un " + confianza + " % de confianza, se estima que " + nombre + " " + simbolo +
     " está entre " + formatear(r.inferior) + " y " + formatear(r.superior) + ".";
@@ -242,7 +209,6 @@ function interpretar(confianza, nombre, simbolo, r) {
 const NOTA_INDEPENDIENTES = "Las muestras se suponen independientes; si los datos van por pares (por ejemplo, " +
   "antes y después en los mismos sujetos), elige «Muestras pareadas».";
 
-// Filas de datos de una de las dos muestras. desvNombre y desv pueden ser null.
 function filasMuestra(numero, n, media, desvNombre, desv) {
   const sub = numero === 1 ? "₁" : "₂";
   const filas = [
@@ -440,7 +406,6 @@ function presentarCocienteVarianzas(r, n1, s1, n2, s2, confianza) {
   };
 }
 
-// Símbolo del estadístico, de la variable aleatoria y nombre de cada distribución.
 const ESTADISTICOS = {
   z: { simbolo: "z", variable: "Z", nombre: "normal estándar Z" },
   t: { simbolo: "t", variable: "T", nombre: "t de Student" },
@@ -450,11 +415,9 @@ const ESTADISTICOS = {
 
 const NOTA_NORMAL = "La distribución t supone que la población de la que viene la muestra es aproximadamente normal.";
 
-// Datos y pasos del estadístico de cada método; después, la parte común de la
-// decisión (valores críticos, región de rechazo, valor p y conclusión).
 function presentarPrueba(clave, r, d) {
   const f = formatear;
-  const v0 = r.valorH0 < 0 ? "(" + r.valorH0 + ")" : String(r.valorH0); // para restar: 5 − (−2)
+  const v0 = r.valorH0 < 0 ? "(" + r.valorH0 + ")" : String(r.valorH0);
   const e = ESTADISTICOS[r.distribucion].simbolo;
   let datos = [];
   let pasos = [];
@@ -494,7 +457,7 @@ function presentarPrueba(clave, r, d) {
     notas.push("El formulario no trae la fórmula de la prueba: aquí el error estándar usa π₀ (el valor de H₀), " +
       "como en la prueba usual de una proporción. Confirma con tu profesor que es la que se usa en clase.");
   } else if (clave === "varianza") {
-    const fl = herramientas.formatearLimite; // conserva cifras en varianzas pequeñas
+    const fl = herramientas.formatearLimite;
     datos = [["Tamaño de muestra (n)", d.n]];
     if (d.s !== null) datos.push(["Desviación estándar muestral (s)", fl(d.s)]);
     datos.push(["Varianza muestral (S²)", fl(r.varianza)]);
@@ -550,7 +513,6 @@ function presentarPrueba(clave, r, d) {
       e + " = (" + f(r.diferencia) + " − " + v0 + ") / " + f(r.errorEstandar) + " = " + f(r.estadistico)]);
     notas.push(NOTA_INDEPENDIENTES);
   } else if (clave === "dos-proporciones") {
-    // x₁ y x₂: los éxitos dados o, si se dio p̂, n · p̂.
     const x1 = d.exitos1 !== null ? d.exitos1 : f(d.n1 * r.p1);
     const x2 = d.exitos2 !== null ? d.exitos2 : f(d.n2 * r.p2);
     datos = [
@@ -615,15 +577,12 @@ function presentarPrueba(clave, r, d) {
   return Object.assign({ datos: datos, pasos: pasos, notas: notas }, presentarDecisionPrueba(r));
 }
 
-// Grados de libertad para mostrar: ", ν = 11" en t y χ², ν₁ y ν₂ en F; Z no usa.
 function textoGLPrueba(r) {
   if (r.distribucion === "f") return ", ν₁ = " + r.gl1 + " (numerador) y ν₂ = " + r.gl2 + " (denominador)";
   if (r.distribucion === "z") return " (no usa grados de libertad)";
   return ", ν = " + formatear(r.gl);
 }
 
-// Nombre del valor crítico con la notación del formulario: el subíndice es el área a la
-// DERECHA (z_0.05, χ²_0.975,9, F_0.05(11,9)). En Z y t el de la izquierda es −z_α o −t_α,ν.
 function simboloCritico(r, c) {
   const derecha = formatearArea(c.critico.areaDerecha);
   if (r.distribucion === "z" || r.distribucion === "t") {
@@ -636,12 +595,10 @@ function simboloCritico(r, c) {
   return "F_" + derecha + "(" + r.gl1 + "," + r.gl2 + ")";
 }
 
-// Valor p para mostrar: 4 decimales o, si es menor que 0.1, 4 cifras significativas (formatearLimite).
 function formatearValorP(p) {
   return p === 0 ? "≈ 0" : herramientas.formatearLimite(p);
 }
 
-// Parte común: valores críticos, región de rechazo, valor p, decisión y conclusión.
 function presentarDecisionPrueba(r) {
   const e = ESTADISTICOS[r.distribucion].simbolo;
   const v = ESTADISTICOS[r.distribucion].variable;
@@ -687,7 +644,6 @@ function presentarDecisionPrueba(r) {
   };
 }
 
-// Permite usar estas funciones desde Node (pruebas). En el navegador no hace nada.
 if (typeof module !== "undefined") {
   module.exports = {
     NOTA_REDONDEO,
