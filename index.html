@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asistente Estadístico</title>
+  <link rel="icon" type="image/webp" href="favicon.webp">
   <link rel="stylesheet" href="css/estilos.css">
   <script src="js/estadistica.js" defer></script>
   <script src="js/valores-criticos.js" defer></script>
   <script src="js/metodos.js" defer></script>
+  <script src="js/selector.js" defer></script>
   <script src="js/intervalos.js" defer></script>
   <script src="js/decisiones.js" defer></script>
   <script src="js/pruebas.js" defer></script>
@@ -28,25 +30,117 @@
       data-caso="una-media" data-formato="resumen" significa:
       "mostrar solo si el caso es una media Y el formato es estadísticas resumidas".
       Si un atributo tiene varios valores separados por espacio, basta con que coincida uno.
+      El caso y σ salen de las tarjetas del paso 1 (js/selector.js).
       La lógica está en js/app.js.
     -->
     <form id="formulario-ejercicio" novalidate>
 
-      <!-- 1. Tipo de ejercicio y nivel -->
-      <section class="tarjeta">
-        <h2>1. ¿Qué vas a resolver?</h2>
+      <!-- 1. Características del ejercicio: tarjetas que se eligen y se quitan con un clic.
+           Cada pregunta (data-pregunta) solo se ve cuando tiene sentido con lo ya elegido;
+           las reglas están en js/selector.js y el método lo elige js/metodos.js. -->
+      <section class="tarjeta" id="selector">
+        <h2>1. ¿Qué datos tiene el ejercicio?</h2>
+        <p class="ayuda">Toca una tarjeta para elegirla y tócala otra vez para quitarla. Solo aparecen las opciones que corresponden a lo que ya elegiste.</p>
 
-        <fieldset class="opciones">
-          <legend>Tipo de ejercicio</legend>
-          <label class="opcion">
-            <input type="radio" name="tipo" value="intervalo">
-            Intervalo de confianza
-          </label>
-          <label class="opcion">
-            <input type="radio" name="tipo" value="prueba">
-            Prueba de hipótesis
-          </label>
-        </fieldset>
+        <div class="grupo-tarjetas" role="group" aria-labelledby="pregunta-tipo" data-pregunta="tipo">
+          <h3 id="pregunta-tipo">¿Qué vas a resolver?</h3>
+          <div class="tarjetas-opciones">
+            <button type="button" class="tarjeta-opcion" data-pregunta="tipo" data-valor="intervalo" aria-pressed="false">
+              <span class="tarjeta-titulo">Intervalo de confianza</span>
+              <span class="tarjeta-detalle">Estimar el parámetro con un nivel de confianza</span>
+            </button>
+            <button type="button" class="tarjeta-opcion" data-pregunta="tipo" data-valor="prueba" aria-pressed="false">
+              <span class="tarjeta-titulo">Prueba de hipótesis</span>
+              <span class="tarjeta-detalle">Contrastar H₀ contra H₁ con un nivel α</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grupo-tarjetas" role="group" aria-labelledby="pregunta-parametro" data-pregunta="parametro">
+          <h3 id="pregunta-parametro">¿Qué parámetro se estudia?</h3>
+          <div class="tarjetas-opciones">
+            <button type="button" class="tarjeta-opcion" data-pregunta="parametro" data-valor="media" aria-pressed="false">
+              <span class="tarjeta-titulo">Media (μ)</span>
+              <span class="tarjeta-detalle">Un promedio, o la diferencia de dos</span>
+            </button>
+            <button type="button" class="tarjeta-opcion" data-pregunta="parametro" data-valor="proporcion" aria-pressed="false">
+              <span class="tarjeta-titulo">Proporción (p)</span>
+              <span class="tarjeta-detalle">Un porcentaje o fracción de éxitos</span>
+            </button>
+            <button type="button" class="tarjeta-opcion" data-pregunta="parametro" data-valor="varianza" aria-pressed="false">
+              <span class="tarjeta-titulo">Varianza (σ²)</span>
+              <span class="tarjeta-detalle">La dispersión, o la desviación estándar σ</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grupo-tarjetas" role="group" aria-labelledby="pregunta-muestras" data-pregunta="muestras" hidden>
+          <h3 id="pregunta-muestras">¿Cuántas muestras hay?</h3>
+          <div class="tarjetas-opciones">
+            <button type="button" class="tarjeta-opcion" data-pregunta="muestras" data-valor="una" aria-pressed="false">
+              <span class="tarjeta-titulo">Una muestra</span>
+              <span class="tarjeta-detalle">Un solo grupo de datos</span>
+            </button>
+            <button type="button" class="tarjeta-opcion" data-pregunta="muestras" data-valor="dos" aria-pressed="false">
+              <span class="tarjeta-titulo">Dos muestras</span>
+              <span class="tarjeta-detalle">Se comparan dos grupos de datos</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grupo-tarjetas" role="group" aria-labelledby="pregunta-relacion" data-pregunta="relacion" hidden>
+          <h3 id="pregunta-relacion">¿Cómo se relacionan las dos muestras?</h3>
+          <div class="tarjetas-opciones">
+            <button type="button" class="tarjeta-opcion" data-pregunta="relacion" data-valor="independientes" aria-pressed="false">
+              <span class="tarjeta-titulo">Independientes</span>
+              <span class="tarjeta-detalle">Grupos distintos; pueden tener distinto tamaño</span>
+            </button>
+            <button type="button" class="tarjeta-opcion" data-pregunta="relacion" data-valor="pareadas" aria-pressed="false">
+              <span class="tarjeta-titulo">Pareadas</span>
+              <span class="tarjeta-detalle">Los mismos sujetos medidos dos veces (antes y después)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grupo-tarjetas" role="group" aria-labelledby="pregunta-sigma" data-pregunta="sigma" hidden>
+          <h3 id="pregunta-sigma">¿El enunciado da la desviación estándar poblacional (σ)?</h3>
+          <div class="tarjetas-opciones">
+            <button type="button" class="tarjeta-opcion" data-pregunta="sigma" data-valor="conocida" aria-pressed="false">
+              <span class="tarjeta-titulo">σ conocida</span>
+              <span class="tarjeta-detalle">El enunciado da σ (en dos muestras, σ₁ y σ₂)</span>
+            </button>
+            <button type="button" class="tarjeta-opcion" data-pregunta="sigma" data-valor="desconocida" aria-pressed="false">
+              <span class="tarjeta-titulo">σ desconocida</span>
+              <span class="tarjeta-detalle">Solo hay la desviación de la muestra (s) o los datos</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grupo-tarjetas" role="group" aria-labelledby="pregunta-varianzas" data-pregunta="varianzas" hidden>
+          <h3 id="pregunta-varianzas">¿Qué supone el enunciado sobre las varianzas poblacionales?</h3>
+          <div class="tarjetas-opciones">
+            <button type="button" class="tarjeta-opcion" data-pregunta="varianzas" data-valor="iguales" aria-pressed="false">
+              <span class="tarjeta-titulo">Iguales</span>
+              <span class="tarjeta-detalle">σ₁² = σ₂²</span>
+            </button>
+            <button type="button" class="tarjeta-opcion" data-pregunta="varianzas" data-valor="diferentes" aria-pressed="false">
+              <span class="tarjeta-titulo">Diferentes</span>
+              <span class="tarjeta-detalle">σ₁² ≠ σ₂²</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Método según lo elegido; se actualiza solo (js/app.js). -->
+        <div id="vista-metodo" class="vista-metodo" role="status" aria-live="polite"></div>
+
+        <button type="button" id="boton-limpiar-seleccion" class="secundario">Limpiar selección</button>
+      </section>
+
+      <!-- 2. Nivel de confianza o de significancia -->
+      <section class="tarjeta">
+        <h2>2. Nivel de confianza o de significancia</h2>
+
+        <p id="aviso-nivel" class="ayuda">Elige en el paso 1 si es un intervalo de confianza o una prueba de hipótesis.</p>
 
         <div class="campo condicional" data-tipo="intervalo">
           <label for="nivel-confianza">Nivel de confianza (%)</label>
@@ -60,29 +154,6 @@
           <input type="number" id="nivel-significancia" name="nivel-significancia"
                  value="0.05" step="any" inputmode="decimal" aria-describedby="ayuda-significancia">
           <p class="ayuda" id="ayuda-significancia">Escribe un valor entre 0 y 1, por ejemplo 0.01, 0.05 o 0.10.</p>
-        </div>
-      </section>
-
-      <!-- 2. Caso o parámetro -->
-      <section class="tarjeta">
-        <h2>2. ¿Sobre qué parámetro es el ejercicio?</h2>
-
-        <div class="campo">
-          <label for="caso">Caso</label>
-          <select id="caso" name="caso">
-            <option value="">— Elige un caso —</option>
-            <optgroup label="Una muestra">
-              <option value="una-media">Una media (μ)</option>
-              <option value="una-proporcion">Una proporción (p)</option>
-              <option value="una-varianza">Una varianza (σ²)</option>
-            </optgroup>
-            <optgroup label="Dos muestras">
-              <option value="dos-medias">Dos medias, muestras independientes (μ₁ − μ₂)</option>
-              <option value="dos-proporciones">Dos proporciones (p₁ − p₂)</option>
-              <option value="cociente-varianzas">Cociente de varianzas (σ₁² / σ₂²)</option>
-              <option value="pareadas">Muestras pareadas (μ_d)</option>
-            </optgroup>
-          </select>
         </div>
       </section>
 
@@ -107,33 +178,7 @@
       <section class="tarjeta">
         <h2>4. Datos del ejercicio</h2>
 
-        <p id="aviso-datos" class="ayuda">Elige el caso (paso 2) y el formato (paso 3) para ver los campos.</p>
-
-        <!-- Preguntas para una media y dos medias -->
-        <fieldset class="opciones condicional" data-caso="una-media dos-medias" data-formato="lista resumen">
-          <legend>¿El enunciado da la desviación estándar poblacional (σ)?</legend>
-          <p class="ayuda">En dos medias se refiere a σ₁ y σ₂. Si solo da la desviación de la muestra (s), elige "No".</p>
-          <label class="opcion">
-            <input type="radio" name="sigma" value="conocida">
-            Sí, σ es conocida
-          </label>
-          <label class="opcion">
-            <input type="radio" name="sigma" value="desconocida">
-            No, σ es desconocida
-          </label>
-        </fieldset>
-
-        <fieldset class="opciones condicional" data-caso="dos-medias" data-formato="lista resumen" data-sigma="desconocida">
-          <legend>¿Qué indica el enunciado sobre las varianzas poblacionales?</legend>
-          <label class="opcion">
-            <input type="radio" name="varianzas" value="iguales">
-            Se suponen iguales
-          </label>
-          <label class="opcion">
-            <input type="radio" name="varianzas" value="diferentes">
-            Se suponen diferentes
-          </label>
-        </fieldset>
+        <p id="aviso-datos" class="ayuda">Completa las características del ejercicio (paso 1) y elige el formato (paso 3) para ver los campos.</p>
 
         <!-- Una media -->
         <fieldset class="bloque condicional" data-caso="una-media" data-formato="lista">

@@ -11,20 +11,38 @@ JavaScript, sin dependencias ni paso de compilación.
 
 ## Cómo se usa la interfaz
 
-1. **¿Qué vas a resolver?** Intervalo de confianza (pide el nivel de confianza en %)
-   o prueba de hipótesis (pide el nivel de significancia α).
-2. **Caso:** una media, una proporción, una varianza, dos medias, dos proporciones,
-   cociente de varianzas o muestras pareadas.
+1. **¿Qué datos tiene el ejercicio?** Se eligen tarjetas: un clic la marca (borde
+   rojo y ✓) y otro clic la desmarca; elegir otra tarjeta de la misma pregunta
+   reemplaza a la anterior. Las preguntas aparecen solo cuando tienen sentido:
+
+   | Pregunta | Opciones | Aparece cuando... |
+   |---|---|---|
+   | ¿Qué vas a resolver? | Intervalo de confianza, prueba de hipótesis | siempre |
+   | ¿Qué parámetro se estudia? | Media, proporción, varianza | siempre |
+   | ¿Cuántas muestras hay? | Una, dos | ya se eligió el parámetro |
+   | ¿Cómo se relacionan? | Independientes, pareadas | media con dos muestras |
+   | ¿Da σ el enunciado? | σ conocida, σ desconocida | media con una muestra o dos independientes |
+   | ¿Varianzas? | Iguales, diferentes | dos medias independientes con σ desconocidas |
+
+   Dos proporciones y cociente de varianzas siempre son de muestras independientes,
+   y las pareadas no usan σ, así que esas preguntas no se ofrecen ahí. Si se cambia
+   una respuesta, las que dejan de tener sentido se quitan solas.
+
+   Debajo de las tarjetas, el recuadro **Método** se actualiza solo: mientras falte
+   algo, pregunta por ello; con todo elegido muestra el método de `js/metodos.js`.
+   Si el método depende del tamaño de muestra (una o dos medias con σ desconocida),
+   no lo adivina: pide n y lo muestra en cuanto se escribe en el paso 4 (o se cuenta
+   de la lista). Los casos sin un método seguro se explican en vez de elegir uno.
+   **Limpiar selección** quita todas las tarjetas sin borrar lo escrito.
+2. **Nivel:** de confianza en % (intervalos) o de significancia α (pruebas).
 3. **Formato de los datos:** lista de valores individuales o estadísticas resumidas.
 4. **Datos del ejercicio:** aparecen solo los campos del caso y formato elegidos.
-   En una media y dos medias se pregunta si σ es conocida; en dos medias con σ
-   desconocida, si las varianzas se suponen iguales o diferentes. En pruebas de
-   hipótesis también se piden el valor del parámetro en H₀ y la hipótesis
-   alternativa H₁ (que indica la cola: ≠ dos colas, < izquierda, > derecha).
+   En pruebas de hipótesis también se piden el valor del parámetro en H₀ y la
+   hipótesis alternativa H₁ (que indica la cola: ≠ dos colas, < izquierda, > derecha).
 
 El botón **Reiniciar** vuelve el ejercicio al estado inicial (borra datos,
-opciones, resultados y mensajes, sin recargar la página); si ya se escribieron
-datos, primero pide confirmación.
+tarjetas, opciones, resultados y mensajes, sin recargar la página); si ya se
+escribieron datos, primero pide confirmación.
 
 El botón **Revisar datos** indica si falta elegir algo. Si los datos vienen en
 lista, también calcula y muestra los estadísticos de cada muestra. Después
@@ -392,7 +410,9 @@ resultados se redondea a 4 decimales (función `formatear` de `js/presentacion.j
 Para mostrar u ocultar campos, cada bloque del HTML con la clase `condicional`
 indica en sus atributos `data-tipo`, `data-caso`, `data-formato` y `data-sigma`
 para qué opciones se debe ver. La función `actualizarCampos()` de `js/app.js`
-compara esos atributos con lo elegido.
+compara esos atributos con lo elegido. El tipo, el caso y σ salen de las tarjetas
+del paso 1: `js/selector.js` decide qué preguntas se ven y qué caso resulta, y
+`identificarMetodo` (`js/metodos.js`) sigue siendo la única que elige el método.
 
 ## Estructura
 
@@ -405,6 +425,7 @@ asistente-estadistico/
 │   ├── estadistica.js  Lectura de listas y fórmulas de estadísticos
 │   ├── valores-criticos.js  Valores críticos de Z, t, chi-cuadrada y F
 │   ├── metodos.js   Reglas para identificar el método
+│   ├── selector.js  Tarjetas del paso 1: qué preguntas se ven y qué caso resulta
 │   ├── decisiones.js  Criterios de decisión de los intervalos de dos muestras
 │   ├── intervalos.js  Intervalos de confianza de una y dos muestras
 │   ├── pruebas.js   Pruebas de hipótesis
@@ -414,6 +435,7 @@ asistente-estadistico/
 │   ├── estadistica.test.js  Pruebas de js/estadistica.js
 │   ├── valores-criticos.test.js  Pruebas de js/valores-criticos.js
 │   ├── metodos.test.js  Pruebas de js/metodos.js
+│   ├── selector.test.js  Pruebas de js/selector.js
 │   ├── decisiones.test.js  Pruebas de js/decisiones.js
 │   ├── intervalos.test.js  Pruebas de los intervalos de una muestra
 │   ├── intervalos-dos-muestras.test.js  Pruebas de los intervalos de dos muestras
@@ -444,10 +466,11 @@ carpeta del proyecto:
 ### Verificar el sitio
 
 1. Con el servidor local abierto, entra a <http://localhost:8000/tests/integracion.html>:
-   debe decir «36 pruebas, 0 fallos». (Esta página necesita el servidor local; abierta
+   debe decir «45 pruebas, 0 fallos». (Esta página necesita el servidor local; abierta
    como archivo, el navegador no la deja leer la aplicación.)
 2. En <http://localhost:8000> abre la consola (F12): no debe haber errores.
-3. **Teclado:** usa solo Tab, Shift+Tab, las flechas (para elegir opciones) y Enter.
+3. **Teclado:** usa solo Tab, Shift+Tab, las flechas (para elegir opciones de radio),
+   Enter o Espacio (para marcar y desmarcar tarjetas).
    Debe verse un contorno amarillo en el elemento enfocado y se debe poder llegar a
    todos los campos, a «Revisar datos» y a «Reiniciar».
 4. **Móvil:** en las herramientas del navegador (F12 → icono de dispositivo) elige un
@@ -472,7 +495,8 @@ Debe terminar con `fail 0`. Incluye dos tipos de pruebas:
 - **Integrales** (`tests/integracion.html`): usan la página real como una persona
   (eligen opciones, escriben datos y pulsan los botones) y recorren datos individuales
   y resumidos, una y dos muestras, datos pareados, los 10 intervalos, las pruebas de
-  hipótesis con sus tres colas, el botón «Reiniciar», errores, etiquetas, ancho de
+  hipótesis con sus tres colas, las tarjetas del paso 1 (marcar, desmarcar, preguntas
+  que aparecen y se quitan, método en vivo), el botón «Reiniciar», errores, etiquetas, ancho de
   móvil (360 y 320 px) y errores de consola. `node --test` las ejecuta en Microsoft
   Edge o Google Chrome sin abrir ventana (`tests/integracion.test.js`). Si no
   encuentra ninguno, esa prueba aparece como **omitida**: ábrelas a mano en

@@ -1,18 +1,19 @@
 /* Estilos generales del sitio */
 
-/* Colores inspirados en las Chivas: rojo y blanco, con azul oscuro como secundario.
-   Todos cumplen contraste AA sobre blanco (rojo 5.9:1, azul 15.4:1). */
+/* Paleta inspirada en las Chivas: rojo, azul y blanco. */
 :root {
   --rojo: #c8102e;
   --rojo-oscuro: #9e0c24;
   --rojo-claro: #fdecee;
-  --azul: #0b2545;
-  --texto: #222;
-  --texto-suave: #555;
-  --fondo: #f5f3f3;
-  --borde: #d9d4d4;
-  --borde-campo: #8c8585;
-  --encabezado-tabla: #f3eeee;
+  --azul: #174f86;
+  --azul-oscuro: #10385f;
+  --azul-claro: #eaf2fa;
+  --texto: #18334d;
+  --texto-suave: #4b6278;
+  --fondo: #edf4fa;
+  --borde: #ccd9e6;
+  --borde-campo: #718aa3;
+  --encabezado-tabla: #e5eff8;
   --error: #b00020;
 }
 
@@ -31,8 +32,9 @@ body {
 .encabezado {
   padding: 24px 16px;
   text-align: center;
-  color: #fff;
-  background-color: var(--rojo);
+  color: var(--azul);
+  background-color: #fff;
+  border-top: 4px solid var(--rojo);
   border-bottom: 4px solid var(--azul);
 }
 
@@ -173,14 +175,14 @@ button {
   font: inherit;
   font-weight: bold;
   color: #fff;
-  background-color: var(--rojo);
+  background-color: var(--azul);
   border: none;
   border-radius: 6px;
   cursor: pointer;
 }
 
 button:hover {
-  background-color: var(--rojo-oscuro);
+  background-color: var(--azul-oscuro);
 }
 
 /* Botón secundario (Reiniciar): mismo tamaño, pero con fondo blanco */
@@ -198,6 +200,117 @@ button.secundario:hover {
 
 #estado {
   margin: 12px 0 0;
+}
+
+/* ---------- Selector con tarjetas (paso 1) ---------- */
+
+.grupo-tarjetas {
+  margin-bottom: 16px;
+}
+
+.grupo-tarjetas h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--azul);
+}
+
+/* Las tarjetas se acomodan en columnas en escritorio y una debajo de otra en móvil */
+.tarjetas-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 8px;
+}
+
+/* Cada tarjeta es un botón que se marca y se desmarca (aria-pressed) */
+button.tarjeta-opcion {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: 48px; /* fácil de tocar en móvil */
+  padding: 10px 12px 10px 42px; /* espacio a la izquierda para la casilla */
+  text-align: left;
+  font-weight: normal;
+  color: var(--texto);
+  background-color: #fff;
+  border: 2px solid var(--borde-campo);
+  border-radius: 8px;
+}
+
+button.tarjeta-opcion:hover {
+  background-color: var(--azul-claro);
+}
+
+/* Casilla: vacía si la tarjeta no está elegida, con ✓ si lo está (no depende solo del color) */
+button.tarjeta-opcion::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--borde-campo);
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+button.tarjeta-opcion[aria-pressed="true"] {
+  background-color: var(--azul-claro);
+  border-color: var(--azul);
+  box-shadow: inset 0 0 0 1px var(--azul);
+}
+
+button.tarjeta-opcion[aria-pressed="true"]::before {
+  content: "✓";
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  background-color: var(--rojo);
+  border-color: var(--rojo);
+}
+
+.tarjeta-titulo {
+  font-weight: bold;
+}
+
+.tarjeta-detalle {
+  font-size: 0.9em;
+  color: var(--texto-suave);
+}
+
+/* Método según lo elegido: el borde y el título indican si ya se identificó */
+.vista-metodo {
+  margin: 4px 0 12px;
+  padding: 12px 16px;
+  background-color: var(--encabezado-tabla);
+  border-left: 4px solid var(--borde-campo);
+  border-radius: 4px;
+}
+
+.vista-metodo[data-estado="identificado"] {
+  border-left-color: var(--azul);
+}
+
+.vista-metodo[data-estado="no-determinado"] {
+  border-left-color: var(--error);
+}
+
+.vista-metodo h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: var(--azul);
+}
+
+.vista-metodo p,
+.vista-metodo ul {
+  margin: 4px 0;
+}
+
+#boton-limpiar-seleccion {
+  margin-left: 0;
 }
 
 /* ---------- Estadísticos de los datos (Parte 3) ---------- */

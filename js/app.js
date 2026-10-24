@@ -14,8 +14,14 @@
 //          (las fórmulas y la decisión están en js/pruebas.js).
 // Parte 10: los textos y tablas de cada resultado se preparan en js/presentacion.js;
 //          aquí solo se ponen en la página, con las mismas secciones en todos los casos.
+// Selector con tarjetas (paso 1): el tipo, el caso, σ y las varianzas se eligen con
+//          tarjetas que se marcan y desmarcan; qué preguntas aparecen lo decide
+//          js/selector.js y el método se muestra en vivo con js/metodos.js.
 
 const formulario = document.getElementById("formulario-ejercicio");
+const seccionSelector = document.getElementById("selector");
+const vistaMetodo = document.getElementById("vista-metodo");
+const avisoNivel = document.getElementById("aviso-nivel");
 const avisoDatos = document.getElementById("aviso-datos");
 const estado = document.getElementById("estado");
 const resultados = document.getElementById("resultados");
@@ -66,15 +72,21 @@ const TAMANOS_POR_CASO = {
   "pareadas": ["par-n"],
 };
 
+// Lo elegido en las tarjetas del paso 1: { tipo, parametro, muestras, relacion, sigma, varianzas }.
+let caracteristicas = seleccionVacia();
+
 // Lee las opciones elegidas. Si una opción no se ha elegido, su valor es "".
+// tipo, caso, sigma y varianzas vienen de las tarjetas; σ y las varianzas quedan en ""
+// si el caso no las usa.
 function leerSeleccion() {
   const campos = formulario.elements;
+  const elegido = datosParaMetodo(caracteristicas);
   return {
-    tipo: campos.tipo.value,
-    caso: campos.caso.value,
+    tipo: elegido.tipo,
+    caso: elegido.caso,
     formato: campos.formato.value,
-    sigma: campos.sigma.value,
-    varianzas: campos.varianzas.value,
+    sigma: elegido.sigma,
+    varianzas: elegido.varianzas,
     alternativa: campos.alternativa.value, // solo pruebas de hipótesis
   };
 }
@@ -99,8 +111,127 @@ function actualizarCampos() {
     bloque.hidden = !debeMostrarse(bloque, seleccion);
   }
 
-  // El aviso del paso 4 solo se ve mientras falte el caso o el formato.
+  // Los avisos de los pasos 2 y 4 solo se ven mientras falte lo que necesitan.
+  avisoNivel.hidden = seleccion.tipo !== "";
   avisoDatos.hidden = seleccion.caso !== "" && seleccion.formato !== "";
+}
+
+// ---------- Selector con tarjetas (paso 1) ----------
+
+// Muestra solo las preguntas que tienen sentido, marca las tarjetas elegidas y
+// actualiza el método.
+function actualizarSelector() {
+  const visibles = preguntasVisibles(caracteristicas);
+  for (const grupo of seccionSelector.querySelectorAll(".grupo-tarjetas")) {
+    grupo.hidden = !visibles.includes(grupo.dataset.pregunta);
+  }
+  for (const tarjeta of seccionSelector.querySelectorAll(".tarjeta-opcion")) {
+    const elegida = caracteristicas[tarjeta.dataset.pregunta] === tarjeta.dataset.valor;
+    tarjeta.setAttribute("aria-pressed", String(elegida));
+  }
+  actualizarVistaMetodo();
+}
+
+// Tamaños de muestra que ya se pueden leer de la página, sin mostrar errores:
+// en estadísticas resumidas, los campos n; en lista, cuántos valores tiene cada lista.
+// tamanos es null si todavía no se elige el formato. listaConError indica que una
+// lista tiene un dato que no es número (y por eso no se pudo contar).
+function tamanosEnVivo(caso, formato) {
+  if (formato === "resumen") return { tamanos: leerTamanosResumen(caso), listaConError: false };
+  if (formato !== "lista") return { tamanos: null, listaConError: false };
+  let listaConError = false;
+  const tamanos = LISTAS_POR_CASO[caso].map(function ([id]) {
+    const texto = document.getElementById(id).value;
+    if (texto.trim() === "") return null;
+    const lectura = leerLista(texto);
+    if (lectura.error) {
+      listaConError = true;
+      return null;
+    }
+    return lectura.valores.length;
+  });
+  return { tamanos: tamanos, listaConError: listaConError };
+}
+
+// Dónde escribir el tamaño de muestra cuando el método depende de él.
+function dondeEscribirTamano(formato, listaConError) {
+  if (formato === "resumen") return "Escribe el tamaño de muestra en el paso 4 (Datos del ejercicio).";
+  if (formato === "lista") {
+    return listaConError
+      ? "Una lista del paso 4 tiene un dato que no es número; corrígela para poder contar n."
+      : "Escribe la lista de datos en el paso 4; n se cuenta solo.";
+  }
+  return "Elige cómo vienen los datos (paso 3) y escribe el tamaño de muestra o la lista de datos (paso 4).";
+}
+
+// Debajo de las tarjetas: el método que corresponde, pero solo cuando identificarMetodo
+// (js/metodos.js) lo identifica con lo elegido. Si falta algo, se pregunta por ello.
+function actualizarVistaMetodo() {
+  const nueva = document.createElement("div");
+  const pendientes = preguntasPendientes(caracteristicas);
+  let estadoVista;
+
+  if (pendientes.length > 0) {
+    estadoVista = "pendiente";
+    agregarElemento("h3", "Método: falta información", nueva);
+    agregarElemento("p", "Para saber qué método corresponde, responde:", nueva);
+    const lista = agregarElemento("ul", "", nueva);
+    for (const pregunta of pendientes) agregarElemento("li", TEXTOS_SELECTOR[pregunta].pregunta, lista);
+  } else {
+    const elegido = datosParaMetodo(caracteristicas);
+    const formato = formulario.elements.formato.value;
+    const vivo = tamanosEnVivo(elegido.caso, formato);
+    const metodo = identificarMetodo(Object.assign({ tamanos: vivo.tamanos }, elegido));
+    const caso = "Caso: " + CASOS[elegido.caso].nombre + ".";
+
+    if (metodo.estado === "identificado") {
+      estadoVista = "identificado";
+      agregarElemento("h3", "Método: " + metodo.metodo, nueva);
+      agregarElemento("p", caso, nueva);
+      agregarElemento("p", "Distribución: " + metodo.distribucion + ". Grados de libertad: " +
+        (metodo.gradosLibertad === null ? "no aplica" : metodo.gradosLibertad) + ".", nueva);
+      agregarElemento("p", "Por qué: " + metodo.explicacion, nueva);
+    } else if (metodo.estado === "falta-dato") {
+      estadoVista = "pendiente";
+      agregarElemento("h3", "Método: falta un dato", nueva);
+      agregarElemento("p", caso, nueva);
+      agregarElemento("p", metodo.mensaje, nueva);
+      agregarElemento("p", dondeEscribirTamano(formato, vivo.listaConError), nueva);
+    } else {
+      estadoVista = "no-determinado";
+      agregarElemento("h3", "No se puede determinar el método con seguridad", nueva);
+      agregarElemento("p", caso, nueva);
+      agregarElemento("p", metodo.mensaje, nueva);
+    }
+  }
+
+  vistaMetodo.dataset.estado = estadoVista;
+  // Solo se reemplaza si cambió, para que el lector de pantalla no repita lo mismo en cada tecla.
+  if (vistaMetodo.textContent !== nueva.textContent) {
+    vistaMetodo.replaceChildren(...nueva.childNodes);
+  }
+}
+
+// Tocar una tarjeta la elige o la quita; las respuestas que dejan de tener sentido se borran.
+function tocarTarjeta(evento) {
+  const tarjeta = evento.target.closest(".tarjeta-opcion");
+  if (!tarjeta) return;
+  caracteristicas = tocarOpcion(caracteristicas, tarjeta.dataset.pregunta, tarjeta.dataset.valor);
+  alCambiarCaracteristicas();
+}
+
+// Quita todas las tarjetas elegidas; lo escrito en los demás pasos no se borra.
+function limpiarSeleccion() {
+  caracteristicas = seleccionVacia();
+  alCambiarCaracteristicas();
+}
+
+// Como un cambio en el formulario: los campos visibles cambian y los resultados
+// anteriores se borran, porque ya no corresponden a lo elegido.
+function alCambiarCaracteristicas() {
+  actualizarSelector();
+  actualizarCampos();
+  limpiarResultados();
 }
 
 // Muestra un mensaje debajo del botón. Los errores se ven en rojo.
@@ -133,18 +264,12 @@ function revisarDatos(evento) {
   limpiarResultados();
 
   const seleccion = leerSeleccion();
-  const faltantes = [];
-  const usaSigma = seleccion.caso === "una-media" || seleccion.caso === "dos-medias";
+  // Las preguntas del paso 1 que tienen sentido y siguen sin respuesta (js/selector.js).
+  const faltantes = preguntasPendientes(caracteristicas).map(function (pregunta) {
+    return TEXTOS_SELECTOR[pregunta].falta + " (paso 1)";
+  });
 
-  if (seleccion.tipo === "") faltantes.push("el tipo de ejercicio (paso 1)");
-  if (seleccion.caso === "") faltantes.push("el caso (paso 2)");
   if (seleccion.formato === "") faltantes.push("el formato de los datos (paso 3)");
-  if (usaSigma && seleccion.formato !== "" && seleccion.sigma === "") {
-    faltantes.push("si σ es conocida (paso 4)");
-  }
-  if (seleccion.caso === "dos-medias" && seleccion.sigma === "desconocida" && seleccion.varianzas === "") {
-    faltantes.push("si las varianzas son iguales o diferentes (paso 4)");
-  }
   if (seleccion.tipo === "prueba" && seleccion.caso !== "" && seleccion.formato !== "" && seleccion.alternativa === "") {
     faltantes.push("la hipótesis alternativa H₁ (paso 4)");
   }
@@ -176,14 +301,13 @@ function revisarDatos(evento) {
 
   const partes = [
     NOMBRES[seleccion.tipo],
-    formulario.elements.caso.selectedOptions[0].textContent,
+    CASOS[seleccion.caso].nombre,
     NOMBRES[seleccion.formato],
     nivel,
   ];
-  if (usaSigma) partes.push(NOMBRES[seleccion.sigma]);
-  if (seleccion.caso === "dos-medias" && seleccion.sigma === "desconocida") {
-    partes.push(NOMBRES[seleccion.varianzas]);
-  }
+  // σ y las varianzas solo tienen valor en los casos que las usan.
+  if (seleccion.sigma !== "") partes.push(NOMBRES[seleccion.sigma]);
+  if (seleccion.varianzas !== "") partes.push(NOMBRES[seleccion.varianzas]);
   const resumen = "Selección: " + partes.join(" · ") + ".";
 
   // Tamaños de muestra: en lista se cuentan los datos leídos (y se muestran sus
@@ -737,7 +861,7 @@ function agregarTabla(encabezados, filas, destino = contenidoResultados) {
 
 // Indica si el usuario escribió algo: algún campo de texto o número tiene un
 // valor distinto del que trae el HTML (vacío, o 95 y 0.05 en los niveles).
-// Las opciones elegidas (radios y el caso) no cuentan: se vuelven a elegir rápido.
+// Las opciones elegidas (radios y tarjetas) no cuentan: se vuelven a elegir rápido.
 function hayDatosEscritos() {
   for (const campo of formulario.querySelectorAll("input:not([type=radio]), textarea")) {
     if (campo.value !== campo.defaultValue) return true;
@@ -751,20 +875,32 @@ function reiniciarEjercicio() {
   if (hayDatosEscritos() && !confirm("¿Borrar los datos escritos y empezar el ejercicio de nuevo?")) {
     return;
   }
-  formulario.reset();   // cada campo vuelve al valor del HTML; no envía el formulario
+  formulario.reset();   // cada campo vuelve al valor del HTML (y se quitan las tarjetas); no envía el formulario
   actualizarCampos();   // reset() no dispara "change", así que se ocultan los campos aquí
   limpiarResultados();
-  formulario.elements.tipo[0].focus(); // para seguir con el teclado desde el paso 1
+  seccionSelector.querySelector(".tarjeta-opcion").focus(); // para seguir con el teclado desde el paso 1
 }
 
 // Cualquier cambio en el formulario actualiza los campos visibles y borra
 // los resultados anteriores, porque ya no corresponden a lo escrito.
+// El método del paso 1 depende del formato y del tamaño de muestra, así que también se actualiza.
 formulario.addEventListener("change", function () {
   actualizarCampos();
+  actualizarVistaMetodo();
   limpiarResultados();
 });
+// Mientras se escribe (por ejemplo, n) solo se actualiza el método del paso 1.
+formulario.addEventListener("input", actualizarVistaMetodo);
+// Las tarjetas no son campos del formulario: reset() no las quita por sí solo.
+formulario.addEventListener("reset", function () {
+  caracteristicas = seleccionVacia();
+  actualizarSelector();
+});
 formulario.addEventListener("submit", revisarDatos);
+seccionSelector.addEventListener("click", tocarTarjeta);
+document.getElementById("boton-limpiar-seleccion").addEventListener("click", limpiarSeleccion);
 document.getElementById("boton-reiniciar").addEventListener("click", reiniciarEjercicio);
 
 // Al cargar la página, ocultar todo lo que aún no corresponde.
+actualizarSelector();
 actualizarCampos();

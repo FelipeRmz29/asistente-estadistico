@@ -41,7 +41,46 @@ function limpiar() {
 
 // ---------- Acciones de la persona ----------
 
+// Tarjetas del paso 1 que hay que tocar para cada caso (en este orden).
+const TARJETAS_POR_CASO = {
+  "una-media": { parametro: "media", muestras: "una" },
+  "dos-medias": { parametro: "media", muestras: "dos", relacion: "independientes" },
+  "pareadas": { parametro: "media", muestras: "dos", relacion: "pareadas" },
+  "una-proporcion": { parametro: "proporcion", muestras: "una" },
+  "dos-proporciones": { parametro: "proporcion", muestras: "dos" },
+  "una-varianza": { parametro: "varianza", muestras: "una" },
+  "cociente-varianzas": { parametro: "varianza", muestras: "dos" },
+};
+
+function tarjeta(pregunta, valor) {
+  const boton = doc.querySelector('.tarjeta-opcion[data-pregunta="' + pregunta + '"][data-valor="' + valor + '"]');
+  if (!boton) throw new Error("No existe la tarjeta " + pregunta + " = " + valor);
+  return boton;
+}
+
+// Toca una tarjeta (la elige o, si ya estaba elegida, la quita); falla si no se ve.
+function tocar(pregunta, valor) {
+  const boton = tarjeta(pregunta, valor);
+  if (oculto(boton)) throw new Error("La tarjeta " + pregunta + " = " + valor + " no está visible");
+  boton.click();
+}
+
+function elegida(pregunta, valor) {
+  return tarjeta(pregunta, valor).getAttribute("aria-pressed") === "true";
+}
+
+// Elige una opción como lo haría una persona: el caso, el tipo, σ y las varianzas con
+// las tarjetas del paso 1; lo demás con los radios del formulario.
 function elegir(nombre, valor) {
+  if (nombre === "caso") {
+    const tarjetas = TARJETAS_POR_CASO[valor];
+    for (const pregunta in tarjetas) tocar(pregunta, tarjetas[pregunta]);
+    return;
+  }
+  if (doc.querySelector('.tarjeta-opcion[data-pregunta="' + nombre + '"]')) {
+    tocar(nombre, valor);
+    return;
+  }
   const campo = formulario.elements[nombre];
   if (campo.tagName === "SELECT") {
     campo.value = valor;
@@ -398,6 +437,122 @@ function todasLasPruebas() {
     igual(destacados("prueba")[0], "Decisión: no se rechaza H₀", "decisión");
   });
 
+  // ----- Selector con tarjetas (paso 1) -----
+
+  prueba("tarjetas: al cargar solo se pregunta el tipo y el parámetro, y nada está elegido", function () {
+    const visibles = Array.from(doc.querySelectorAll(".grupo-tarjetas")).filter(function (g) { return !g.hidden; });
+    igual(visibles.map(function (g) { return g.dataset.pregunta; }).join(","), "tipo,parametro", "preguntas visibles");
+    igual(doc.querySelectorAll('.tarjeta-opcion[aria-pressed="true"]').length, 0, "tarjetas elegidas");
+    contiene(texto("vista-metodo"), "Método: falta información", "vista del método");
+    contiene(texto("vista-metodo"), "¿Es un intervalo de confianza o una prueba de hipótesis?", "pregunta del tipo");
+  });
+
+  prueba("tarjetas: un clic elige, otro clic quita, y elegir otra reemplaza a la anterior", function () {
+    tocar("tipo", "intervalo");
+    verdadero(elegida("tipo", "intervalo"), "intervalo debería quedar elegido");
+    verdadero(!doc.querySelector('[data-tipo="intervalo"]').hidden, "debería verse el nivel de confianza");
+    tocar("tipo", "prueba");
+    verdadero(elegida("tipo", "prueba") && !elegida("tipo", "intervalo"), "solo prueba debería quedar elegida");
+    tocar("tipo", "prueba");
+    verdadero(!elegida("tipo", "prueba"), "un segundo clic debería quitarla");
+    verdadero(!doc.getElementById("aviso-nivel").hidden, "debería volver el aviso del paso 2");
+  });
+
+  prueba("tarjetas: solo aparecen las preguntas que tienen sentido", function () {
+    tocar("parametro", "proporcion");
+    tocar("muestras", "dos");
+    verdadero(oculto(tarjeta("relacion", "pareadas")), "dos proporciones no deberían ofrecer muestras pareadas");
+    verdadero(oculto(tarjeta("sigma", "conocida")), "una proporción no usa σ");
+    tocar("parametro", "media");
+    verdadero(!oculto(tarjeta("relacion", "pareadas")), "dos medias preguntan si son independientes o pareadas");
+    verdadero(oculto(tarjeta("sigma", "conocida")), "σ se pregunta después de la relación");
+    tocar("relacion", "pareadas");
+    verdadero(oculto(tarjeta("sigma", "conocida")), "las muestras pareadas no usan σ");
+    tocar("relacion", "independientes");
+    tocar("sigma", "conocida");
+    verdadero(oculto(tarjeta("varianzas", "iguales")), "con σ conocidas no se pregunta por las varianzas");
+    tocar("sigma", "desconocida");
+    verdadero(!oculto(tarjeta("varianzas", "iguales")), "con σ desconocidas sí");
+  });
+
+  prueba("tarjetas: al cambiar una respuesta se quitan las que ya no corresponden", function () {
+    elegirTodo({ tipo: "intervalo", caso: "dos-medias", sigma: "desconocida", varianzas: "iguales" });
+    tocar("muestras", "una");
+    verdadero(!elegida("relacion", "independientes"), "la relación debería quitarse");
+    verdadero(!elegida("varianzas", "iguales") && oculto(tarjeta("varianzas", "iguales")), "las varianzas deberían quitarse");
+    verdadero(elegida("sigma", "desconocida"), "σ sigue teniendo sentido con una muestra");
+    tocar("parametro", "media"); // quitar el parámetro quita todo lo que depende de él
+    igual(doc.querySelectorAll('.tarjeta-opcion[aria-pressed="true"]').length, 1, "solo debería quedar el tipo");
+  });
+
+  prueba("tarjetas: el método aparece solo cuando hay datos suficientes y no se adivina sin n", function () {
+    elegirTodo({ tipo: "intervalo", caso: "una-media" });
+    contiene(texto("vista-metodo"), "¿El enunciado da la desviación estándar poblacional σ", "pregunta por σ");
+    tocar("sigma", "desconocida");
+    contiene(texto("vista-metodo"), "Método: falta un dato", "falta n");
+    contiene(texto("vista-metodo"), "Falta el tamaño de la muestra (n)", "pide n");
+    contiene(texto("vista-metodo"), "Elige cómo vienen los datos (paso 3)", "dice dónde escribirlo");
+    verdadero(!texto("vista-metodo").includes("t de Student") && !texto("vista-metodo").includes("normal estándar Z"),
+      "no debería mostrar un método sin n");
+    elegir("formato", "resumen");
+    escribir({ "media-n": "12" });
+    doc.getElementById("media-n").dispatchEvent(new app.Event("input", { bubbles: true }));
+    contiene(texto("vista-metodo"), "Método: Intervalo de confianza para una media (μ) con n < 30", "con n = 12");
+    contiene(texto("vista-metodo"), "t de Student", "distribución t");
+    escribir({ "media-n": "40" });
+    doc.getElementById("media-n").dispatchEvent(new app.Event("input", { bubbles: true }));
+    contiene(texto("vista-metodo"), "normal estándar Z", "con n = 40 se usa Z");
+  });
+
+  prueba("tarjetas: con datos en lista, n se cuenta de la lista", function () {
+    elegirTodo({ tipo: "prueba", caso: "una-media", formato: "lista", sigma: "desconocida" });
+    contiene(texto("vista-metodo"), "Escribe la lista de datos en el paso 4", "pide la lista");
+    escribir({ "media-datos": "1 2 x" });
+    doc.getElementById("media-datos").dispatchEvent(new app.Event("input", { bubbles: true }));
+    contiene(texto("vista-metodo"), "tiene un dato que no es número", "lista con error");
+    escribir({ "media-datos": "1 2 3 4" });
+    doc.getElementById("media-datos").dispatchEvent(new app.Event("input", { bubbles: true }));
+    contiene(texto("vista-metodo"), "Prueba de hipótesis para una media (μ) con n < 30", "método con n = 4");
+    contiene(texto("vista-metodo"), "n − 1 = 3", "grados de libertad");
+  });
+
+  prueba("tarjetas: casos sin método seguro se explican en vez de elegir uno", function () {
+    elegirTodo({ tipo: "intervalo", caso: "dos-medias", formato: "resumen", sigma: "desconocida", varianzas: "diferentes" });
+    escribir({ "dm1-n": "40", "dm2-n": "35" });
+    doc.getElementById("dm2-n").dispatchEvent(new app.Event("input", { bubbles: true }));
+    contiene(texto("vista-metodo"), "No se puede determinar el método con seguridad", "vista del método");
+    igual(doc.getElementById("vista-metodo").dataset.estado, "no-determinado", "estado de la vista");
+  });
+
+  prueba("tarjetas: cada caso completo muestra su método (igual que «Revisar datos»)", function () {
+    const casos = [
+      [{ caso: "una-media", sigma: "conocida" }, "una media (μ) con σ conocida"],
+      [{ caso: "una-proporcion" }, "una proporción (p)"],
+      [{ caso: "una-varianza" }, "una varianza (σ²)"],
+      [{ caso: "dos-medias", sigma: "conocida" }, "la diferencia de dos medias (μ₁ − μ₂) con σ₁ y σ₂ conocidas"],
+      [{ caso: "pareadas" }, "la media de las diferencias pareadas (μ_d)"],
+      [{ caso: "dos-proporciones" }, "la diferencia de dos proporciones (p₁ − p₂)"],
+      [{ caso: "cociente-varianzas" }, "el cociente de varianzas (σ₁² / σ₂²)"],
+    ];
+    for (const [opciones, metodo] of casos) {
+      limpiar();
+      elegirTodo(Object.assign({ tipo: "intervalo" }, opciones));
+      contiene(texto("vista-metodo"), "Método: Intervalo de confianza para " + metodo, opciones.caso);
+    }
+  });
+
+  prueba("tarjetas: «Limpiar selección» quita las tarjetas pero no lo escrito", function () {
+    elegirTodo({ tipo: "intervalo", caso: "una-proporcion", formato: "resumen" });
+    escribir({ "prop-n": "100" });
+    doc.getElementById("boton-limpiar-seleccion").click();
+    igual(doc.querySelectorAll('.tarjeta-opcion[aria-pressed="true"]').length, 0, "tarjetas elegidas");
+    verdadero(oculto(tarjeta("muestras", "una")), "las preguntas dependientes se ocultan");
+    contiene(texto("vista-metodo"), "Método: falta información", "vista del método");
+    igual(doc.getElementById("prop-n").value, "100", "lo escrito se conserva");
+    revisar();
+    contiene(estado(), "Falta elegir: el tipo de ejercicio (paso 1), el parámetro (paso 1)", "mensaje");
+  });
+
   // ----- Botón «Reiniciar» -----
 
   prueba("reiniciar después de un resultado: pide confirmación y vuelve al estado inicial", function () {
@@ -418,7 +573,7 @@ function todasLasPruebas() {
     doc.getElementById("boton-reiniciar").click();
     igual(preguntas, 2, "preguntas al aceptar");
     igual(foto(), inicial, "estado después de reiniciar");
-    igual(doc.activeElement.name, "tipo", "el foco vuelve al paso 1");
+    igual(doc.activeElement.dataset.pregunta, "tipo", "el foco vuelve a la primera tarjeta del paso 1");
   });
 
   prueba("reiniciar sin datos escritos no pregunta y no envía el formulario", function () {
@@ -579,9 +734,15 @@ function foto() {
   const valores = Array.from(formulario.elements).map(function (c) {
     return c.type === "radio" ? c.checked : c.value;
   });
-  const visibles = Array.from(formulario.querySelectorAll(".condicional")).map(function (b) { return !b.hidden; });
+  const visibles = Array.from(formulario.querySelectorAll(".condicional, .grupo-tarjetas")).map(function (b) {
+    return !b.hidden;
+  });
+  const elegidas = Array.from(doc.querySelectorAll(".tarjeta-opcion")).map(function (b) {
+    return b.getAttribute("aria-pressed");
+  });
   return JSON.stringify({
-    valores: valores, visibles: visibles, tarjetas: tarjetasVisibles(), estado: estado(),
+    valores: valores, visibles: visibles, elegidas: elegidas, vistaMetodo: texto("vista-metodo"),
+    tarjetas: tarjetasVisibles(), estado: estado(),
     nota: doc.getElementById("nota-redondeo").hidden, invalidos: formulario.querySelectorAll("[aria-invalid]").length,
   });
 }
