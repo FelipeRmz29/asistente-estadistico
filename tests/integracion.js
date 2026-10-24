@@ -412,8 +412,7 @@ function todasLasPruebas() {
     const visibles = Array.from(doc.querySelectorAll(".grupo-tarjetas")).filter(function (g) { return !g.hidden; });
     igual(visibles.map(function (g) { return g.dataset.pregunta; }).join(","), "tipo,parametro", "preguntas visibles");
     igual(doc.querySelectorAll('.tarjeta-opcion[aria-pressed="true"]').length, 0, "tarjetas elegidas");
-    contiene(texto("vista-metodo"), "Método: falta información", "vista del método");
-    contiene(texto("vista-metodo"), "¿Es un intervalo de confianza o una prueba de hipótesis?", "pregunta del tipo");
+    verdadero(doc.getElementById("vista-metodo").hidden, "el recuadro del método no debería verse sin selecciones");
   });
 
   prueba("tarjetas: un clic elige, otro clic quita, y elegir otra reemplaza a la anterior", function () {
@@ -456,8 +455,9 @@ function todasLasPruebas() {
 
   prueba("tarjetas: el método aparece solo cuando hay datos suficientes y no se adivina sin n", function () {
     elegirTodo({ tipo: "intervalo", caso: "una-media" });
-    contiene(texto("vista-metodo"), "¿El enunciado da la desviación estándar poblacional σ", "pregunta por σ");
+    verdadero(doc.getElementById("vista-metodo").hidden, "falta σ en las tarjetas: el recuadro no debería verse");
     tocar("sigma", "desconocida");
+    verdadero(!doc.getElementById("vista-metodo").hidden, "con las tarjetas completas el recuadro debería verse");
     contiene(texto("vista-metodo"), "Método: falta un dato", "falta n");
     contiene(texto("vista-metodo"), "Falta el tamaño de la muestra (n)", "pide n");
     contiene(texto("vista-metodo"), "Elige cómo vienen los datos (paso 3)", "dice dónde escribirlo");
@@ -516,7 +516,7 @@ function todasLasPruebas() {
     doc.getElementById("boton-limpiar-seleccion").click();
     igual(doc.querySelectorAll('.tarjeta-opcion[aria-pressed="true"]').length, 0, "tarjetas elegidas");
     verdadero(oculto(tarjeta("muestras", "una")), "las preguntas dependientes se ocultan");
-    contiene(texto("vista-metodo"), "Método: falta información", "vista del método");
+    verdadero(doc.getElementById("vista-metodo").hidden, "el recuadro del método debería ocultarse");
     igual(doc.getElementById("prop-n").value, "100", "lo escrito se conserva");
     revisar();
     contiene(estado(), "Falta elegir: el tipo de ejercicio (paso 1), el parámetro (paso 1)", "mensaje");

@@ -128,42 +128,41 @@ function dondeEscribirTamano(formato, listaConError) {
 }
 
 function actualizarVistaMetodo() {
+  // Mientras falte responder alguna tarjeta no se muestra el recuadro: las preguntas ya están arriba.
+  if (preguntasPendientes(caracteristicas).length > 0) {
+    vistaMetodo.hidden = true;
+    vistaMetodo.replaceChildren();
+    delete vistaMetodo.dataset.estado;
+    return;
+  }
+  vistaMetodo.hidden = false;
+
   const nueva = document.createElement("div");
-  const pendientes = preguntasPendientes(caracteristicas);
+  const elegido = datosParaMetodo(caracteristicas);
+  const formato = formulario.elements.formato.value;
+  const vivo = tamanosEnVivo(elegido.caso, formato);
+  const metodo = identificarMetodo(Object.assign({ tamanos: vivo.tamanos }, elegido));
+  const caso = "Caso: " + CASOS[elegido.caso].nombre + ".";
   let estadoVista;
 
-  if (pendientes.length > 0) {
+  if (metodo.estado === "identificado") {
+    estadoVista = "identificado";
+    agregarElemento("h3", "Método: " + metodo.metodo, nueva);
+    agregarElemento("p", caso, nueva);
+    agregarElemento("p", "Distribución: " + metodo.distribucion + ". Grados de libertad: " +
+      (metodo.gradosLibertad === null ? "no aplica" : metodo.gradosLibertad) + ".", nueva);
+    agregarElemento("p", "Por qué: " + metodo.explicacion, nueva);
+  } else if (metodo.estado === "falta-dato") {
     estadoVista = "pendiente";
-    agregarElemento("h3", "Método: falta información", nueva);
-    agregarElemento("p", "Para saber qué método corresponde, responde:", nueva);
-    const lista = agregarElemento("ul", "", nueva);
-    for (const pregunta of pendientes) agregarElemento("li", TEXTOS_SELECTOR[pregunta].pregunta, lista);
+    agregarElemento("h3", "Método: falta un dato", nueva);
+    agregarElemento("p", caso, nueva);
+    agregarElemento("p", metodo.mensaje, nueva);
+    agregarElemento("p", dondeEscribirTamano(formato, vivo.listaConError), nueva);
   } else {
-    const elegido = datosParaMetodo(caracteristicas);
-    const formato = formulario.elements.formato.value;
-    const vivo = tamanosEnVivo(elegido.caso, formato);
-    const metodo = identificarMetodo(Object.assign({ tamanos: vivo.tamanos }, elegido));
-    const caso = "Caso: " + CASOS[elegido.caso].nombre + ".";
-
-    if (metodo.estado === "identificado") {
-      estadoVista = "identificado";
-      agregarElemento("h3", "Método: " + metodo.metodo, nueva);
-      agregarElemento("p", caso, nueva);
-      agregarElemento("p", "Distribución: " + metodo.distribucion + ". Grados de libertad: " +
-        (metodo.gradosLibertad === null ? "no aplica" : metodo.gradosLibertad) + ".", nueva);
-      agregarElemento("p", "Por qué: " + metodo.explicacion, nueva);
-    } else if (metodo.estado === "falta-dato") {
-      estadoVista = "pendiente";
-      agregarElemento("h3", "Método: falta un dato", nueva);
-      agregarElemento("p", caso, nueva);
-      agregarElemento("p", metodo.mensaje, nueva);
-      agregarElemento("p", dondeEscribirTamano(formato, vivo.listaConError), nueva);
-    } else {
-      estadoVista = "no-determinado";
-      agregarElemento("h3", "No se puede determinar el método con seguridad", nueva);
-      agregarElemento("p", caso, nueva);
-      agregarElemento("p", metodo.mensaje, nueva);
-    }
+    estadoVista = "no-determinado";
+    agregarElemento("h3", "No se puede determinar el método con seguridad", nueva);
+    agregarElemento("p", caso, nueva);
+    agregarElemento("p", metodo.mensaje, nueva);
   }
 
   vistaMetodo.dataset.estado = estadoVista;
