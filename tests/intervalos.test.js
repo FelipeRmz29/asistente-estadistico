@@ -216,6 +216,9 @@ test("valida el nivel de confianza", function () {
     assert.match(ic.intervaloMediaZ(36, 2.6, 0.3, true, confianza).error, /nivel de confianza/);
   }
   assert.match(ic.intervaloMediaZ(36, 2.6, 0.3, true, 99.99999).error, /No se pudo obtener el valor crítico/);
+  for (const confianza of [0.95, 0.9, 1]) {
+    assert.match(ic.intervaloMediaZ(36, 2.6, 0.3, true, confianza).error, /95, no 0.95/);
+  }
 });
 
 test("valida datos faltantes o no válidos de la media", function () {

@@ -19,6 +19,7 @@ const revisiones = typeof module !== "undefined"
     revisarTamanoDe: revisarTamanoDe,
     revisarNumero: revisarNumero,
     revisarPositivo: revisarPositivo,
+    varianzaMuestral: varianzaMuestral,
     varianzaDe: varianzaDe,
   };
 const MUESTRA_GRANDE_PRUEBA = typeof module !== "undefined"
@@ -100,23 +101,9 @@ function pruebaVarianza(n, s, s2, varianza0, alternativa, alfa) {
     revisiones.revisarTamanoDe(n, 2, "la muestra (n)") ||
     revisiones.revisarPositivo(varianza0, "σ₀² (valor del parámetro en H₀)");
   if (error) return { error: error };
-
-  let varianza;
-  if (s === null && s2 === null) {
-    return { error: "Falta la desviación estándar muestral (s) o la varianza muestral (s²)." };
-  }
-  if (s !== null && s2 !== null) {
-    return { error: "Escribe solo uno de los dos datos: la desviación estándar muestral (s) o la varianza muestral (s²)." };
-  }
-  if (s !== null) {
-    const errorS = revisiones.revisarPositivo(s, "la desviación estándar muestral (s)");
-    if (errorS) return { error: errorS };
-    varianza = s * s;
-  } else {
-    const errorS2 = revisiones.revisarPositivo(s2, "la varianza muestral (s²)");
-    if (errorS2) return { error: errorS2 };
-    varianza = s2;
-  }
+  const muestra = revisiones.varianzaMuestral(s, s2);
+  if (muestra.error) return muestra;
+  const varianza = muestra.varianza;
 
   const gl = n - 1;
   const estadistico = gl * varianza / varianza0;
@@ -233,7 +220,8 @@ function pruebaPareadas(n, mediaD, desvD, d0, alternativa, alfa) {
   const errorEstandar = desvD / Math.sqrt(n);
   const estadistico = (mediaD - d0) / errorEstandar;
   return terminarPrueba({ gl: gl, errorEstandar: errorEstandar, estadistico: estadistico }, "t", gl, null,
-    { simbolo: "μ_D", nombre: "la media de las diferencias pareadas", valor: d0, equivalente: ["μ₁", "μ₂"] },
+    { simbolo: "μ_D", nombre: "la media de las diferencias pareadas", valor: d0,
+      equivalente: d0 === 0 ? ["μ₁", "μ₂"] : null },
     alternativa, alfa);
 }
 
@@ -328,7 +316,7 @@ function terminarPrueba(calculos, distribucion, gl1, gl2, parametro, alternativa
   const alt = ALTERNATIVAS[alternativa];
   const h1 = parametro.simbolo + " " + alt.signo + " " + parametro.valor;
   let afirmacion = parametro.nombre + " " + alt.relacion + " " + parametro.valor + " (" + h1 + ")";
-  if (parametro.equivalente && (parametro.valor === 0 || parametro.valor === 1)) {
+  if (parametro.equivalente) {
     afirmacion += ", es decir, " + parametro.equivalente[0] + " " + alt.signo + " " + parametro.equivalente[1];
   }
 
@@ -408,7 +396,9 @@ function revisarPruebaDosMediasT(n1, media1, s1, n2, media2, s2, d0, alternativa
 }
 
 function parametroDosMedias(d0) {
-  return { simbolo: "μ₁ − μ₂", nombre: "la diferencia de medias poblacionales", valor: d0, equivalente: ["μ₁", "μ₂"] };
+  // μ₁ − μ₂ < d₀ solo equivale a μ₁ < μ₂ cuando d₀ = 0.
+  return { simbolo: "μ₁ − μ₂", nombre: "la diferencia de medias poblacionales", valor: d0,
+    equivalente: d0 === 0 ? ["μ₁", "μ₂"] : null };
 }
 
 if (typeof module !== "undefined") {

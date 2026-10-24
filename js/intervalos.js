@@ -136,23 +136,9 @@ function intervaloProporcion(n, exitos, proporcion, confianza) {
 function intervaloVarianza(n, s, s2, confianza) {
   const error = revisarConfianza(confianza) || revisarTamanoMuestra(n, 2);
   if (error) return { error: error };
-
-  let varianza;
-  if (s === null && s2 === null) {
-    return { error: "Falta la desviación estándar muestral (s) o la varianza muestral (s²)." };
-  }
-  if (s !== null && s2 !== null) {
-    return { error: "Escribe solo uno de los dos datos: la desviación estándar muestral (s) o la varianza muestral (s²)." };
-  }
-  if (s !== null) {
-    const errorS = revisarPositivo(s, "la desviación estándar muestral (s)");
-    if (errorS) return { error: errorS };
-    varianza = s * s;
-  } else {
-    const errorS2 = revisarPositivo(s2, "la varianza muestral (s²)");
-    if (errorS2) return { error: errorS2 };
-    varianza = s2;
-  }
+  const muestra = varianzaMuestral(s, s2);
+  if (muestra.error) return muestra;
+  const varianza = muestra.varianza;
 
   const alfa = calcularAlfa(confianza);
   const gl = n - 1;
@@ -456,6 +442,21 @@ function proporcionDe(n, exitos, proporcion, numero) {
   return { p: p };
 }
 
+function varianzaMuestral(s, s2) {
+  if (s === null && s2 === null) {
+    return { error: "Falta la desviación estándar muestral (s) o la varianza muestral (s²)." };
+  }
+  if (s !== null && s2 !== null) {
+    return { error: "Escribe solo uno de los dos datos: la desviación estándar muestral (s) o la varianza muestral (s²)." };
+  }
+  if (s !== null) {
+    const errorS = revisarPositivo(s, "la desviación estándar muestral (s)");
+    return errorS ? { error: errorS } : { varianza: s * s };
+  }
+  const errorS2 = revisarPositivo(s2, "la varianza muestral (s²)");
+  return errorS2 ? { error: errorS2 } : { varianza: s2 };
+}
+
 function varianzaDe(desv, varianza, numero) {
   const sub = numero === 1 ? "₁" : "₂";
   if (desv === null && varianza === null) {
@@ -491,6 +492,10 @@ function calcularAlfa(confianza) {
 function revisarConfianza(confianza) {
   if (typeof confianza !== "number" || !(confianza > 0 && confianza < 100)) {
     return "El nivel de confianza debe ser un número mayor que 0 y menor que 100 (se recibió " + confianza + ").";
+  }
+  // Un nivel de 1 % o menos casi siempre es una fracción escrita por error (0.95 en lugar de 95).
+  if (confianza <= 1) {
+    return "El nivel de confianza se escribe como porcentaje: 95, no 0.95 (se recibió " + confianza + ").";
   }
   return null;
 }
@@ -546,6 +551,7 @@ if (typeof module !== "undefined") {
     revisarTamanoDe,
     revisarNumero,
     revisarPositivo,
+    varianzaMuestral,
     varianzaDe,
   };
 }

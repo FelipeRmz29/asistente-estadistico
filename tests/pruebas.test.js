@@ -146,6 +146,26 @@ test("una varianza con chi-cuadrada: las tres colas y sus valores críticos", fu
   assert.equal(sinError(ph.pruebaVarianza(10, 1.2, null, 0.81, "derecha", 0.10)).rechazar, true);
 });
 
+test("una varianza: intervalo y prueba validan s y s² con los mismos mensajes", function () {
+  const ic = require("../js/intervalos.js");
+  const casos = [
+    [null, null, "Falta la desviación estándar muestral (s) o la varianza muestral (s²)."],
+    [2, 4, "Escribe solo uno de los dos datos: la desviación estándar muestral (s) o la varianza muestral (s²)."],
+    [0, null, "El valor de la desviación estándar muestral (s) debe ser mayor que 0 (se recibió 0)."],
+    [NaN, null, "El valor de la desviación estándar muestral (s) debe ser un número (se recibió NaN)."],
+    [null, -4, "El valor de la varianza muestral (s²) debe ser mayor que 0 (se recibió -4)."],
+    [null, Infinity, "El valor de la varianza muestral (s²) debe ser un número (se recibió Infinity)."],
+  ];
+  for (const [s, s2, mensaje] of casos) {
+    assert.equal(ic.intervaloVarianza(10, s, s2, 95).error, mensaje);
+    assert.equal(ph.pruebaVarianza(10, s, s2, 0.81, "derecha", 0.05).error, mensaje);
+  }
+  cercano(sinError(ic.intervaloVarianza(10, 2, null, 95)).varianza, 4);
+  cercano(sinError(ph.pruebaVarianza(10, 2, null, 0.81, "derecha", 0.05)).varianza, 4);
+  cercano(sinError(ic.intervaloVarianza(10, null, 4, 95)).varianza, 4);
+  cercano(sinError(ph.pruebaVarianza(10, null, 4, 0.81, "derecha", 0.05)).varianza, 4);
+});
+
 // ---------- Dos medias ----------
 
 test("dos medias con Z y σ conocidas, cola derecha", function () {
@@ -181,6 +201,13 @@ test("dos medias con t y varianzas diferentes: gl de Welch redondeado hacia abaj
   cercano(r.valorP, 2 * (1 - vc.cdfT(1.4193142528587446, 13)));
   cercano(r.valorP, 0.17933864703230196);
   assert.equal(r.rechazar, false);
+});
+
+test("dos medias con d₀ = 1: la conclusión no dice que μ₁ < μ₂", function () {
+  const r = sinError(ph.pruebaDosMediasZ(40, 10.5, 2, 40, 10, 2, true, 1, "izquierda", 0.05));
+  assert.equal(r.hipotesis.h1, "μ₁ − μ₂ < 1");
+  assert.match(r.conclusion, /\(μ₁ − μ₂ < 1\)/);
+  assert.doesNotMatch(r.conclusion, /es decir/);
 });
 
 // ---------- Dos proporciones ----------
@@ -219,6 +246,13 @@ test("muestras pareadas con resumen: t, ν = n − 1, cola derecha", function ()
   assert.equal(r.rechazar, true);
   assert.equal(r.hipotesis.h0, "μ_D = 0");
   assert.match(r.conclusion, /es decir, μ₁ > μ₂/);
+});
+
+test("muestras pareadas con d₀ = 1: la conclusión no dice que μ₁ ≠ μ₂", function () {
+  const r = sinError(ph.pruebaPareadas(10, 0.2, 1, 1, "dos-colas", 0.05));
+  assert.equal(r.rechazar, true);
+  assert.match(r.conclusion, /\(μ_D ≠ 1\)/);
+  assert.doesNotMatch(r.conclusion, /es decir/);
 });
 
 test("muestras pareadas desde dos listas: se usan las diferencias, no muestras independientes", function () {

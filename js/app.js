@@ -234,8 +234,9 @@ function revisarDatos(evento) {
   let alfa = null;
   if (seleccion.tipo === "intervalo") {
     confianza = Number(formulario.elements["nivel-confianza"].value);
-    if (!(confianza > 0 && confianza < 100)) {
-      mostrarMensaje("El nivel de confianza debe ser un número mayor que 0 y menor que 100.", true);
+    const errorConfianza = revisarConfianza(confianza);
+    if (errorConfianza) {
+      mostrarMensaje(errorConfianza, true);
       return;
     }
     nivel = "confianza " + confianza + " %";
